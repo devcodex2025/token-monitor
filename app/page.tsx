@@ -78,17 +78,14 @@ export default function Home() {
   };
 
   const connectWebSocket = () => {
-    const ws = new WebSocket('ws://localhost:3001');
+    // Use Server-Sent Events for Vercel compatibility
+    const eventSource = new EventSource(`/api/stream?token=${encodeURIComponent(config.tokenAddress)}`);
     
-    ws.onopen = () => {
-      console.log('WebSocket connected');
-      ws.send(JSON.stringify({
-        type: 'subscribe',
-        tokenAddress: config.tokenAddress,
-      }));
+    eventSource.onopen = () => {
+      console.log('SSE connected');
     };
 
-    ws.onmessage = (event) => {
+    eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
       
       if (data.type === 'transaction') {
@@ -98,19 +95,19 @@ export default function Home() {
           // Keep max 500 transactions
           return updated.slice(0, 500);
         });
+      } else if (data.type === 'error') {
+        setError(data.message);
       }
     };
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      setError('WebSocket connection error');
+    eventSource.onerror = (error) => {
+      console.error('SSE error:', error);
+      eventSource.close();
+      setError('Connection error');
     };
 
-    ws.onclose = () => {
-      console.log('WebSocket disconnected');
-    };
-
-    wsRef.current = ws;
+    // Store as any to reuse wsRef
+    wsRef.current = eventSource as any;
   };
 
   useEffect(() => {
