@@ -8,6 +8,7 @@ export interface Transaction {
   timestamp: number;
   blockTime: number;
   displayToken?: string;
+  dex?: string;
 }
 
 export interface TokenMonitorConfig {
@@ -19,6 +20,8 @@ export interface HeliusTransaction {
   signature: string;
   timestamp: number;
   type: string;
+  source?: string;
+  feePayer: string;
   tokenTransfers?: Array<{
     fromUserAccount: string;
     toUserAccount: string;

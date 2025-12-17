@@ -10,14 +10,18 @@ export class HeliusService {
 
   async getTransactionHistory(
     tokenAddress: string,
-    beforeSignature?: string,
-    limit: number = 100
+    options: { before?: string; until?: string; limit?: number } = {}
   ): Promise<HeliusTransaction[]> {
     try {
+      const limit = options.limit || 100;
       let url = `https://api-mainnet.helius-rpc.com/v0/addresses/${tokenAddress}/transactions?api-key=${this.apiKey}&limit=${limit}`;
       
-      if (beforeSignature) {
-        url += `&before=${beforeSignature}`;
+      if (options.before) {
+        url += `&before=${options.before}`;
+      }
+      
+      if (options.until) {
+        url += `&until=${options.until}`;
       }
 
       const response = await axios.get(url);

@@ -16,6 +16,7 @@ export default function Home() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({ total: 0, buys: 0, sells: 0 });
   
@@ -66,6 +67,36 @@ export default function Home() {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadMore = async () => {
+    if (transactions.length === 0 || isLoadingMore) return;
+
+    setIsLoadingMore(true);
+    try {
+      const lastTx = transactions[transactions.length - 1];
+      const response = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tokenAddress: config.tokenAddress,
+          before: lastTx.signature,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch more transactions');
+      
+      const data = await response.json();
+      const newTransactions = data.transactions || [];
+      
+      if (newTransactions.length > 0) {
+        setTransactions((prev) => [...prev, ...newTransactions]);
+      }
+    } catch (err) {
+      console.error('Error loading more:', err);
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -192,7 +223,11 @@ export default function Home() {
         />
 
         {/* Transaction Feed */}
-        <TransactionFeed transactions={transactions} />
+        <TransactionFeed 
+          transactions={transactions} 
+          onLoadMore={loadMore}
+          isLoadingMore={isLoadingMore}
+        />
       </div>
     </main>
   );

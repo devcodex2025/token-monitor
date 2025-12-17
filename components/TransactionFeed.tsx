@@ -1,16 +1,97 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Transaction } from '@/types';
-import { shortenAddress, formatSolAmount, formatTime } from '@/lib/utils';
+import { shortenAddress, formatSolAmount, formatTime, formatDateTime, timeAgo } from '@/lib/utils';
+
+// DEX Configuration
+const DEX_INFO: Record<string, { name: string; logo?: string; color?: string }> = {
+  'JUPITER': { 
+    name: 'Jupiter', 
+    logo: 'https://jup.ag/svg/jupiter-logo.svg',
+    color: '#16a34a' // green-600
+  },
+  'PUMP.FUN': { 
+    name: 'Pump.fun', 
+    logo: 'https://pump.fun/logo.png',
+    color: '#10b981' // emerald-500
+  },
+  'RAYDIUM': { 
+    name: 'Raydium', 
+    logo: 'https://img.raydium.io/logo/raydium_logo.png',
+    color: '#2563eb' // blue-600
+  },
+  'ORCA': { 
+    name: 'Orca', 
+    logo: 'https://cryptologos.cc/logos/orca-orca-logo.png?v=035',
+    color: '#f59e0b' // amber-500
+  },
+  'PUMPFUN': { 
+    name: 'Pump.fun', 
+    logo: 'https://pump.fun/logo.png',
+    color: '#10b981' // emerald-500
+  },
+  'MOONSHOT': { 
+    name: 'Moonshot', 
+    color: '#8b5cf6' // violet-500
+  },
+  'BOOP.FUN': { 
+    name: 'Boop.fun', 
+    logo: '/logos/boopfun_icon.webp',
+    color: '#ec4899' // pink-500
+  },
+  'OKX_DEX_ROUTER': { 
+    name: 'OKX DEX', 
+    logo: 'https://static.okx.com/cdn/assets/imgs/241/5D665720D6835725.png',
+    color: '#000000'
+  },
+};
 
 interface TransactionFeedProps {
   transactions: Transaction[];
+  onLoadMore?: () => void;
+  isLoadingMore?: boolean;
 }
 
-export default function TransactionFeed({ transactions }: TransactionFeedProps) {
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
+export default function TransactionFeed({ transactions, onLoadMore, isLoadingMore }: TransactionFeedProps) {
+  const prevTopTxSig = useRef<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const isFirstRender = useRef(true);
+
+  // Sort transactions by date (newest first)
+  const sortedTransactions = useMemo(() => {
+    return [...transactions].sort((a, b) => b.blockTime - a.blockTime);
+  }, [transactions]);
+
+  // Initialize audio
+  useEffect(() => {
+    audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    audioRef.current.volume = 0.5;
+  }, []);
+
+  // Play sound only on NEW transactions (at the top of the list)
+  useEffect(() => {
+    if (sortedTransactions.length > 0) {
+      const newestTx = sortedTransactions[0];
+      
+      // If we have a previous top tx and it's different from the current one
+      // And it's not the first render (to avoid sound on initial load)
+      if (!isFirstRender.current && prevTopTxSig.current && prevTopTxSig.current !== newestTx.signature) {
+        audioRef.current?.play().catch(e => console.log('Audio play failed:', e));
+      }
+      
+      prevTopTxSig.current = newestTx.signature;
+    }
+    isFirstRender.current = false;
+  }, [sortedTransactions]);
+
+  // Reset when transactions array is cleared (new token monitored)
+  useEffect(() => {
+    if (transactions.length === 0) {
+      prevTopTxSig.current = null;
+      isFirstRender.current = true;
+    }
+  }, [transactions.length]);
 
   if (transactions.length === 0) {
     return (
@@ -26,86 +107,61 @@ export default function TransactionFeed({ transactions }: TransactionFeedProps) 
     );
   }
 
-  // Calculate pagination
-  const totalPages = Math.ceil(transactions.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentTransactions = transactions.slice(startIndex, endIndex);
-
-  const goToPage = (page: number) => {
-    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
-  };
-
   return (
-    <div className="terminal-panel overflow-hidden">
-      <div className="bg-terminal-bg border-b border-terminal-border px-4 py-3 flex items-center justify-between">
+    <div className="terminal-panel overflow-hidden flex flex-col h-[600px]">
+      <div className="bg-terminal-bg border-b border-terminal-border px-4 py-3 flex items-center justify-between flex-shrink-0">
         <h2 className="text-lg font-semibold">Transaction Feed</h2>
         <div className="text-sm text-terminal-muted">
-          {transactions.length} transactions
+          {sortedTransactions.length} transactions
         </div>
       </div>
       
-      <div className="max-h-[600px] overflow-y-auto">
-        {currentTransactions.map((tx) => (
+      <div className="flex-1 overflow-y-auto">
+        {sortedTransactions.map((tx) => (
           <TransactionRow key={tx.id} transaction={tx} />
         ))}
+        
+        {onLoadMore && (
+          <div className="p-4 text-center border-t border-terminal-border/50">
+            <button
+              onClick={onLoadMore}
+              disabled={isLoadingMore}
+              className="px-4 py-2 rounded bg-terminal-surface text-terminal-text hover:bg-terminal-surface/80 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed w-full"
+            >
+              {isLoadingMore ? 'Loading history...' : 'Load older transactions'}
+            </button>
+          </div>
+        )}
       </div>
-
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="bg-terminal-bg border-t border-terminal-border px-4 py-3 flex items-center justify-between">
-          <div className="text-sm text-terminal-muted">
-            Page {currentPage} of {totalPages} ({startIndex + 1}-{Math.min(endIndex, transactions.length)} of {transactions.length})
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => goToPage(1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 rounded bg-terminal-surface text-terminal-text disabled:opacity-30 disabled:cursor-not-allowed hover:bg-terminal-surface/80 transition-colors text-sm"
-            >
-              ⟪ First
-            </button>
-            <button
-              onClick={() => goToPage(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="px-3 py-1 rounded bg-terminal-surface text-terminal-text disabled:opacity-30 disabled:cursor-not-allowed hover:bg-terminal-surface/80 transition-colors text-sm"
-            >
-              ← Prev
-            </button>
-            <button
-              onClick={() => goToPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded bg-terminal-surface text-terminal-text disabled:opacity-30 disabled:cursor-not-allowed hover:bg-terminal-surface/80 transition-colors text-sm"
-            >
-              Next →
-            </button>
-            <button
-              onClick={() => goToPage(totalPages)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded bg-terminal-surface text-terminal-text disabled:opacity-30 disabled:cursor-not-allowed hover:bg-terminal-surface/80 transition-colors text-sm"
-            >
-              Last ⟫
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
 function TransactionRow({ transaction }: { transaction: Transaction }) {
   const isBuy = transaction.type === 'BUY';
+  const [timeAgoStr, setTimeAgoStr] = useState(timeAgo(transaction.blockTime));
+
+  // Update time ago every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeAgoStr(timeAgo(transaction.blockTime));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [transaction.blockTime]);
   
   return (
     <div
-      className={`transaction-row ${
+      className={`transaction-row animate-slide-in ${
         isBuy ? 'transaction-buy' : 'transaction-sell'
       }`}
     >
       <div className="flex items-center gap-4 flex-1">
         {/* Time */}
-        <div className="text-xs text-terminal-muted font-mono w-20">
-          {formatTime(transaction.blockTime)}
+        <div 
+          className="text-xs text-terminal-muted font-mono w-20 cursor-help"
+          title={formatDateTime(transaction.blockTime)}
+        >
+          {timeAgoStr}
         </div>
 
         {/* Type Badge */}
@@ -118,6 +174,9 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
         >
           {isBuy ? '🟢 BUY' : '🔴 SELL'}
         </div>
+
+        {/* DEX Badge */}
+        {transaction.dex && <DexBadge dex={transaction.dex} />}
 
         {/* Wallet */}
         <div className="font-mono text-sm text-terminal-text/80">
@@ -160,6 +219,42 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
           </a>
         </div>
       </div>
+    </div>
+  );
+}
+
+function DexBadge({ dex }: { dex: string }) {
+  const [imageError, setImageError] = useState(false);
+  
+  // Normalize key for lookup (uppercase)
+  const lookupKey = dex.toUpperCase();
+  const info = DEX_INFO[lookupKey];
+  
+  // Fallback name if not in config
+  const displayName = info?.name || dex.replace(/_/g, ' ');
+  
+  // Determine if we should show logo
+  const showLogo = info?.logo && !imageError;
+
+  return (
+    <div 
+      className="flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium bg-terminal-surface border border-terminal-border whitespace-nowrap transition-all hover:bg-terminal-surface/80"
+      title={displayName}
+    >
+      {showLogo ? (
+        <img 
+          src={info.logo} 
+          alt={displayName}
+          className="w-4 h-4 object-contain"
+          onError={() => setImageError(true)}
+        />
+      ) : (
+        <span className="text-lg leading-none">
+          {/* Simple icon fallback based on first letter if no logo */}
+          ⚡
+        </span>
+      )}
+      <span className="text-terminal-muted">{displayName}</span>
     </div>
   );
 }

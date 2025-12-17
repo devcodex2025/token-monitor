@@ -4,7 +4,7 @@ import { TransactionParser } from '@/lib/transactionParser';
 
 export async function POST(request: NextRequest) {
   try {
-    const { tokenAddress } = await request.json();
+    const { tokenAddress, before } = await request.json();
 
     if (!tokenAddress) {
       return NextResponse.json(
@@ -23,8 +23,11 @@ export async function POST(request: NextRequest) {
 
     const helius = new HeliusService(apiKey);
     
-    // Fetch transaction history (all available)
-    const heliusTxs = await helius.getTransactionHistory(tokenAddress, undefined, 100);
+    // Fetch transaction history
+    const heliusTxs = await helius.getTransactionHistory(tokenAddress, { 
+      before, 
+      limit: 100 
+    });
     
     // Parse transactions
     const transactions = TransactionParser.parseMultiple(heliusTxs, tokenAddress);

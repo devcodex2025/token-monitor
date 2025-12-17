@@ -3,7 +3,7 @@ import { Transaction, HeliusTransaction } from '@/types';
 export class TransactionParser {
   static parse(heliusTx: HeliusTransaction, tokenMint: string): Transaction | null {
     try {
-      const { signature, timestamp, tokenTransfers, nativeTransfers, accountData, type } = heliusTx;
+      const { signature, timestamp, tokenTransfers, nativeTransfers, accountData, type, feePayer, source } = heliusTx;
 
       if (!tokenTransfers || tokenTransfers.length === 0) {
         return null;
@@ -21,27 +21,36 @@ export class TransactionParser {
       // Simple swap direction logic:
       // BUY = any token X → our token (someone receives our token)
       // SELL = our token → any token X (someone sends our token)
-      // We don't care about buyer/seller addresses, only swap direction
       
       const toAccount = tokenTransfer.toUserAccount;
       const fromAccount = tokenTransfer.fromUserAccount;
       
-      const isToUser = this.isUserAccount(toAccount);
-      const isFromUser = this.isUserAccount(fromAccount);
-      
       let isBuy: boolean;
       let actualWallet: string;
-      
-      // Primary logic: check if real user is receiving or sending our token
-      if (isToUser && !isFromUser) {
-        // User receives our token = BUY
+
+      // Use feePayer to identify the user
+      if (feePayer && feePayer === toAccount) {
+        // Fee payer receives our token = BUY
         isBuy = true;
         actualWallet = toAccount;
-      } else if (isFromUser && !isToUser) {
-        // User sends our token = SELL
+      } else if (feePayer && feePayer === fromAccount) {
+        // Fee payer sends our token = SELL
         isBuy = false;
         actualWallet = fromAccount;
       } else {
+        const isToUser = this.isUserAccount(toAccount);
+        const isFromUser = this.isUserAccount(fromAccount);
+        
+        // Primary logic: check if real user is receiving or sending our token
+        if (isToUser && !isFromUser) {
+          // User receives our token = BUY
+          isBuy = true;
+          actualWallet = toAccount;
+        } else if (isFromUser && !isToUser) {
+          // User sends our token = SELL
+          isBuy = false;
+          actualWallet = fromAccount;
+        } else {
         // Fallback: look at opposite token flow direction
         // If opposite token flows FROM toAccount → toAccount is buying (BUY)
         // If opposite token flows TO toAccount → toAccount is selling (SELL)
@@ -81,6 +90,7 @@ export class TransactionParser {
           isBuy = true;
           actualWallet = toAccount;
         }
+      }
       }
 
       // Find associated SOL or other token transfer (USDC, USDT, etc)
@@ -136,6 +146,25 @@ export class TransactionParser {
         }
       }
 
+      // Determine DEX/Platform
+      let dex = source || 'Unknown';
+      
+      // Check for specific program IDs if source is generic or unknown
+      if (accountData) {
+        const programMap: Record<string, string> = {
+          'boop8hVGQGqehUK2iVEMEnMrL5RbjywRzHKBmBE7ry4': 'Boop.fun',
+          '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P': 'Pump.fun',
+          'MoonCVVNZFSYkqN5438hi3fulh6Nj59sbpxmaxhY9Q': 'Moonshot',
+        };
+
+        for (const acc of accountData) {
+          if (programMap[acc.account]) {
+            dex = programMap[acc.account];
+            break;
+          }
+        }
+      }
+
       return {
         id: signature,
         signature,
@@ -146,6 +175,7 @@ export class TransactionParser {
         displayToken,
         timestamp: Date.now(),
         blockTime: timestamp,
+        dex,
       };
     } catch (error) {
       console.error('Error parsing transaction:', error);
