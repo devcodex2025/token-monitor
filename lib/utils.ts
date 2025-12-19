@@ -14,7 +14,17 @@ export const shortenAddress = (address: string, chars = 4): string => {
 };
 
 export const formatSolAmount = (amount: number): string => {
-  return amount.toFixed(4);
+  // Use toPrecision for significant digits instead of toFixed to avoid rounding
+  // This preserves the actual value like 0.04995 instead of rounding to 0.0500
+  if (amount === 0) return '0.0000';
+  
+  // For very small amounts, show more precision
+  if (amount < 0.0001) {
+    return amount.toPrecision(4);
+  }
+  
+  // For normal amounts, show up to 5 decimal places without trailing zeros
+  return Number(amount.toFixed(5)).toString();
 };
 
 export const formatTokenAmount = (amount: number, decimals: number = 6): string => {

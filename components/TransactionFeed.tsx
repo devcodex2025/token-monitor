@@ -55,6 +55,16 @@ const DEX_INFO: Record<string, { name: string; logo?: string; color?: string }> 
     logo: 'https://static.okx.com/cdn/assets/imgs/241/5D665720D6835725.png',
     color: '#000000'
   },
+  'METEORA DLMM': { 
+    name: 'Meteora DLMM', 
+    logo: '/logos/meteora-logo.svg',
+    color: '#9333ea' // purple-600
+  },
+  'METEORA_DAMM_V2': { 
+    name: 'Meteora DAMM v2', 
+    logo: '/logos/meteora-logo.svg',
+    color: '#9333ea' // purple-600
+  },
 };
 
 interface TransactionFeedProps {
@@ -133,7 +143,7 @@ export default function TransactionFeed({ transactions, onLoadMore, isLoadingMor
         <div className="w-24">DEX</div>
         <div className="w-20 hidden md:block">TX ID</div>
         <div className="flex-1">Wallet</div>
-        <div className="text-right w-32">Amount</div>
+        <div className="text-right w-40">Amount</div>
       </div>
       
       <div className="flex-1 overflow-y-auto">
@@ -219,9 +229,18 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
         </div>
 
         {/* Amount */}
-        <div className="w-32 flex-shrink-0 text-right">
+        <div className="w-40 flex-shrink-0 text-right">
           <div className="text-sm font-medium">
-            {formatSolAmount(transaction.solAmount)} {transaction.displayToken || 'SOL'}
+            {transaction.displayToken === 'Fees' ? (
+              <span className="text-terminal-warning flex items-center justify-end gap-1">
+                <span>🎁</span>
+                <span>(Claim Fees)</span>
+              </span>
+            ) : (
+              <>
+                {formatSolAmount(transaction.solAmount)} {transaction.displayToken || 'SOL'}
+              </>
+            )}
           </div>
           <div className="text-xs text-terminal-muted">
             {transaction.tokenAmount.toLocaleString('en-US')} tokens

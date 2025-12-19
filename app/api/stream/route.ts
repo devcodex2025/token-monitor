@@ -26,11 +26,15 @@ export async function GET(req: NextRequest) {
 
       // Polling interval
       const poll = async () => {
+        const t1 = performance.now();
         try {
           const response = await helius.getTransactionHistory(tokenAddress, {
             until: lastSignature,
             limit: 10
           });
+          
+          const t2 = performance.now();
+          const apiTime = Math.round(t2 - t1);
           
           if (response && response.length > 0) {
             // Update last signature to the most recent one (first in list)
@@ -40,7 +44,13 @@ export async function GET(req: NextRequest) {
             for (const tx of response) {
               const parsed = parser.parse(tx, tokenAddress);
               if (parsed) {
-                sendEvent({ type: 'transaction', transaction: parsed });
+                const t3 = performance.now();
+                const parseTime = Math.round(t3 - t2);
+                sendEvent({ 
+                  type: 'transaction', 
+                  transaction: parsed,
+                  _timing: { api: apiTime, parse: parseTime, total: Math.round(t3 - t1) }
+                });
               }
             }
           }
@@ -53,8 +63,9 @@ export async function GET(req: NextRequest) {
       // Initial poll
       await poll();
 
-      // Poll every 1 second (reduced from 3s for lower latency)
-      const interval = setInterval(poll, 1000);
+      // Poll every 200ms for minimal latency (5x per second)
+      // This provides ~200-400ms total latency vs 1000-1500ms before
+      const interval = setInterval(poll, 200);
 
       // Clean up on disconnect
       req.signal.addEventListener('abort', () => {

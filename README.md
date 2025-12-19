@@ -50,7 +50,15 @@ npm run cli <token_address>
 # Example: npm run cli 6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN
 ```
 
-## 📄 License
+## � Currency Conversion
+
+The monitor automatically converts **USDC** and **USDT** transactions to **SOL equivalents** for consistent volume tracking. Original amounts are displayed in parentheses for verification.
+
+- **Conversion Rate**: Configurable in `lib/transactionParser.ts` (default: ~$200/SOL)
+- **Example Display**: `0.0050 SOL (1.00 USDC)`
+- **Note**: Update `SOL_PRICE_USD` constant for accurate conversion
+
+## �📄 License
 
 This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
 

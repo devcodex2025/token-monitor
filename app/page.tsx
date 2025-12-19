@@ -141,6 +141,12 @@ export default function Home() {
 
       if (data.type === 'transaction') {
         const newTx = data.transaction as Transaction;
+        
+        // Log timing information for latency monitoring
+        if (data._timing) {
+          console.log(`⏱️ Latency: API ${data._timing.api}ms | Parse ${data._timing.parse}ms | Total ${data._timing.total}ms`);
+        }
+        
         setTransactions((prev) => {
           // Check if transaction already exists to avoid duplicates
           if (prev.some(tx => tx.signature === newTx.signature)) {
