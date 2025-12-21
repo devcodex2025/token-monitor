@@ -60,6 +60,11 @@ const DEX_INFO: Record<string, { name: string; logo?: string; color?: string }> 
     logo: '/logos/meteora-logo.svg',
     color: '#9333ea' // purple-600
   },
+  'METEORA': { 
+    name: 'Meteora DLMM', 
+    logo: '/logos/meteora-logo.svg',
+    color: '#9333ea' // purple-600
+  },
   'METEORA_DAMM_V2': { 
     name: 'Meteora DAMM v2', 
     logo: '/logos/meteora-logo.svg',
@@ -171,6 +176,7 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
   const isBuy = transaction.type === 'BUY';
   const isSell = transaction.type === 'SELL';
   const isRemoveLiquidity = transaction.type === 'REMOVE_LIQUIDITY';
+  const isClaimFees = transaction.type === 'CLAIM_FEES';
   const [timeAgoStr, setTimeAgoStr] = useState(timeAgo(transaction.blockTime));
 
   // Update time ago every second
@@ -184,7 +190,7 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
   return (
     <div
       className={`transaction-row animate-slide-in ${
-        isBuy ? 'transaction-buy' : isSell ? 'transaction-sell' : 'transaction-remove'
+        isBuy ? 'transaction-buy' : isSell ? 'transaction-sell' : isClaimFees ? 'transaction-claim' : 'transaction-remove'
       }`}
     >
       <div className="flex items-center gap-4 flex-1 px-4">
@@ -210,10 +216,17 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
                 ? 'bg-terminal-success/20 text-terminal-success'
                 : isSell
                 ? 'bg-terminal-danger/20 text-terminal-danger'
+                : isClaimFees
+                ? 'bg-yellow-500/20 text-yellow-400'
                 : 'bg-purple-500/20 text-purple-400'
             }`}
           >
-            {isRemoveLiquidity ? (
+            {isClaimFees ? (
+              <span className="flex items-center gap-1">
+                <span>💰</span>
+                <span>FEES</span>
+              </span>
+            ) : isRemoveLiquidity ? (
               <span className="flex items-center gap-1">
                 <span>💧</span>
                 <span>-LP</span>

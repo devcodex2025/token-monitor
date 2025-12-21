@@ -2,30 +2,93 @@ import { Transaction, HeliusTransaction } from '../types';
 
 export class TransactionParser {
 
+  static parseClaimFees(
+    heliusTx: HeliusTransaction,
+    tokenMint: string,
+    feePayer: string
+  ): Transaction | null {
+    const { signature, timestamp, tokenTransfers } = heliusTx;
+    const WSOL_MINT = 'So11111111111111111111111111111111111111112';
+
+    // Find the transfers
+    const tokenTransfer = tokenTransfers?.find(t => t.mint === tokenMint);
+    const wsolTransfer = tokenTransfers?.find(t => t.mint === WSOL_MINT);
+
+    const tokenAmount = tokenTransfer?.tokenAmount || 0;
+    const solAmount = wsolTransfer?.tokenAmount || 0;
+
+    return {
+      id: signature,
+      signature,
+      type: 'CLAIM_FEES',
+      wallet: feePayer || '',
+      tokenAmount,
+      solAmount,
+      timestamp,
+      blockTime: timestamp,
+      displayToken: 'SOL',
+      dex: 'Meteora',
+    };
+  }
+
   static parseRemoveLiquidity(
     heliusTx: HeliusTransaction,
     tokenMint: string,
     tokenTransfer: any,
     feePayer: string
   ): Transaction | null {
-    const { signature, timestamp } = heliusTx;
+    const { signature, timestamp, accountData, tokenTransfers: allTokenTransfers } = heliusTx;
     const WSOL_MINT = 'So11111111111111111111111111111111111111112';
 
     // Find transfers going TO the user (receiving tokens back)
     let solAmount = 0;
     let tokenAmount = 0;
-    const tokenTransfers = heliusTx.tokenTransfers || [];
+    const tokenTransfers = allTokenTransfers || [];
     
+    // First try to get from tokenTransfers (standard case)
     for (const transfer of tokenTransfers) {
       // Check if user is receiving (toUserAccount matches feePayer)
-      const isUserReceiving = transfer.toUserAccount === feePayer || 
-                              transfer.toTokenAccount === feePayer;
+      const isUserReceiving = transfer.toUserAccount === feePayer;
       
       if (isUserReceiving) {
         if (transfer.mint === WSOL_MINT) {
           solAmount += transfer.tokenAmount;
         } else if (transfer.mint === tokenMint) {
           tokenAmount += transfer.tokenAmount;
+        }
+      }
+    }
+
+    // If we didn't find SOL in tokenTransfers, check accountData for user's balance change
+    if (solAmount === 0 && accountData) {
+      for (const accountChange of accountData) {
+        // Check if this is the user's account
+        if (accountChange.account === feePayer && accountChange.nativeBalanceChange) {
+          // Convert lamports to SOL (native balance change is in lamports, can be positive for receiving)
+          const balanceChange = accountChange.nativeBalanceChange;
+          if (balanceChange > 0) {
+            solAmount = balanceChange / 1e9;
+          }
+        }
+        
+        // Also check tokenBalanceChanges
+        if (accountChange.tokenBalanceChanges) {
+          for (const balanceChange of accountChange.tokenBalanceChanges) {
+            if (balanceChange.mint === tokenMint && balanceChange.rawTokenAmount) {
+              // Positive change means user received tokens
+              const rawAmount = parseFloat(balanceChange.rawTokenAmount.tokenAmount);
+              if (rawAmount > 0) {
+                const decimals = balanceChange.rawTokenAmount.decimals || 6;
+                tokenAmount += rawAmount / Math.pow(10, decimals);
+              }
+            } else if (balanceChange.mint === WSOL_MINT && balanceChange.rawTokenAmount && solAmount === 0) {
+              const rawAmount = parseFloat(balanceChange.rawTokenAmount.tokenAmount);
+              if (rawAmount > 0) {
+                const decimals = balanceChange.rawTokenAmount.decimals || 9;
+                solAmount += rawAmount / Math.pow(10, decimals);
+              }
+            }
+          }
         }
       }
     }
@@ -48,6 +111,53 @@ export class TransactionParser {
     try {
       const { signature, timestamp, tokenTransfers, nativeTransfers, accountData, type, feePayer, source, instructions } = heliusTx;
 
+      // Ignore simple wallet-to-wallet transfers (no trading, no DEX)
+      if (type === 'TRANSFER' && source === 'SOLANA_PROGRAM_LIBRARY') {
+        return null;
+      }
+
+      // Check if this is a Meteora DLMM transaction first
+      const METEORA_DLMM = 'LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo';
+      const meteoraInstructions = instructions?.filter((ix: any) => 
+        ix.programId === METEORA_DLMM
+      );
+
+      // If this is a Meteora transaction, check what type it is
+      if (meteoraInstructions && meteoraInstructions.length > 0) {
+        // Check if this is Claim Fees: ALL transfers go TO the user (user receives both tokens)
+        const ourTokenTransfer = tokenTransfers?.find(t => t.mint === tokenMint);
+        const wsolTransfer = tokenTransfers?.find(t => t.mint === 'So11111111111111111111111111111111111111112');
+        
+        // Claim Fees: user RECEIVES both our token AND WSOL
+        const isClaimFees = ourTokenTransfer && wsolTransfer &&
+          ourTokenTransfer.toUserAccount === feePayer &&
+          wsolTransfer.toUserAccount === feePayer &&
+          ourTokenTransfer.fromUserAccount !== feePayer &&
+          wsolTransfer.fromUserAccount !== feePayer;
+        
+        if (isClaimFees) {
+          return this.parseClaimFees(heliusTx, tokenMint, feePayer);
+        }
+        
+        // Remove Liquidity: user RECEIVES tokens but also might SEND LP tokens
+        // Check if this is Remove Liquidity by looking at innerInstructions
+        for (const meteoraIx of meteoraInstructions) {
+          if (meteoraIx.innerInstructions && meteoraIx.innerInstructions.length > 0) {
+            for (const inner of meteoraIx.innerInstructions) {
+              // Check if this inner instruction involves our token mint
+              if (inner.accounts && inner.accounts.includes(tokenMint)) {
+                // Double-check: if both tokens go TO user from non-user, it's Claim Fees
+                if (isClaimFees) {
+                  return this.parseClaimFees(heliusTx, tokenMint, feePayer);
+                }
+                // Otherwise it's Remove Liquidity
+                return this.parseRemoveLiquidity(heliusTx, tokenMint, null, feePayer);
+              }
+            }
+          }
+        }
+      }
+
       if (!tokenTransfers || tokenTransfers.length === 0) {
         return null;
       }
@@ -61,8 +171,7 @@ export class TransactionParser {
         return null;
       }
 
-      // Check if this is a Remove Liquidity transaction
-      const METEORA_DLMM = 'LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo';
+      // Check if this is a Remove Liquidity transaction (legacy check for standard transfers)
       const isRemoveLiquidity = instructions?.some((ix: any) => 
         ix.programId === METEORA_DLMM && 
         (ix.data?.includes('remove_liquidity') || ix.accounts?.length > 10)

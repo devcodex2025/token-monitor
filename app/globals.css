@@ -85,4 +85,8 @@
   .transaction-remove {
     @apply border-l-4 border-purple-500;
   }
+  
+  .transaction-claim {
+    @apply border-l-4 border-yellow-500;
+  }
 }

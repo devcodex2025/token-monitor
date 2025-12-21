@@ -42,14 +42,15 @@ export class WebSocketTransformer {
       // Extract fee payer (first signer)
       const feePayer = accountKeys.find(key => key.signer)?.pubkey || '';
 
-      // Extract token transfers from innerInstructions
+      // Extract token transfers from innerInstructions AND tokenBalances
       const tokenTransfers: any[] = [];
       
+      // First, try to extract from innerInstructions (parsed transfers)
       if (meta.innerInstructions) {
         for (const inner of meta.innerInstructions) {
           for (const ix of inner.instructions) {
             // Look for parsed token transfers
-            if (ix.parsed?.type === 'transferChecked') {
+            if (ix.parsed?.type === 'transferChecked' || ix.parsed?.type === 'transfer') {
               const info = ix.parsed.info;
               const tokenAmount = info.tokenAmount || {};
               
@@ -72,6 +73,58 @@ export class WebSocketTransformer {
             }
           }
         }
+      }
+      
+      // Also extract from preTokenBalances and postTokenBalances
+      // This catches transfers that aren't in innerInstructions
+      if (meta.preTokenBalances && meta.postTokenBalances) {
+        const tokenBalanceMap = new Map<string, { pre: any, post: any }>();
+        
+        // Build map of token account changes
+        meta.preTokenBalances.forEach((balance: any) => {
+          const key = `${balance.accountIndex}-${balance.mint}`;
+          if (!tokenBalanceMap.has(key)) {
+            tokenBalanceMap.set(key, { pre: balance, post: null });
+          } else {
+            tokenBalanceMap.get(key)!.pre = balance;
+          }
+        });
+        
+        meta.postTokenBalances.forEach((balance: any) => {
+          const key = `${balance.accountIndex}-${balance.mint}`;
+          if (!tokenBalanceMap.has(key)) {
+            tokenBalanceMap.set(key, { pre: null, post: balance });
+          } else {
+            tokenBalanceMap.get(key)!.post = balance;
+          }
+        });
+        
+        // Process balance changes
+        tokenBalanceMap.forEach((change, key) => {
+          if (change.pre && change.post) {
+            const preAmount = parseFloat(change.pre.uiTokenAmount?.uiAmountString || '0');
+            const postAmount = parseFloat(change.post.uiTokenAmount?.uiAmountString || '0');
+            const diff = postAmount - preAmount;
+            
+            if (diff !== 0) {
+              const accountPubkey = accountKeys[change.pre.accountIndex || change.post.accountIndex]?.pubkey || '';
+              const mint = change.pre.mint || change.post.mint;
+              
+              // Find owner from token account (usually in owner field)
+              const owner = change.pre.owner || change.post.owner || '';
+              
+              tokenTransfers.push({
+                fromUserAccount: diff < 0 ? owner : '',
+                toUserAccount: diff > 0 ? owner : '',
+                fromTokenAccount: diff < 0 ? accountPubkey : '',
+                toTokenAccount: diff > 0 ? accountPubkey : '',
+                tokenAmount: Math.abs(diff),
+                mint,
+                tokenStandard: 'Fungible',
+              });
+            }
+          }
+        });
       }
 
       // Extract native transfers from balance changes

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TransactionParser } from '@/lib/transactionParser';
-
-// Import connections from stream route
-import { connections } from '../stream/route';
+import { connections } from '../shared/connections';
 
 export async function POST(req: NextRequest) {
   const t0 = performance.now();

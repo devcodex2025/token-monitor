@@ -2,11 +2,7 @@ import { NextRequest } from 'next/server';
 import WebSocket from 'ws';
 import { TransactionParser } from '@/lib/transactionParser';
 import { WebSocketTransformer } from '@/lib/websocketTransformer';
-import { writeFileSync } from 'fs';
-import { join } from 'path';
-
-// Store active connections per token for webhook delivery
-const connections = new Map<string, Set<ReadableStreamDefaultController>>();
+import { connections, websockets } from '../shared/connections';
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
@@ -21,9 +17,8 @@ export async function GET(req: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       let isClosed = false;
-      let heliusWs: WebSocket | null = null;
 
-      // Register this connection for webhook delivery
+      // Register this connection for receiving events
       if (!connections.has(tokenAddress)) {
         connections.set(tokenAddress, new Set());
       }
@@ -39,17 +34,82 @@ export async function GET(req: NextRequest) {
         }
       };
 
-      // Connect to Helius Enhanced WebSocket
+      // Reusable handler for processing transactions
+      const processTransaction = async (result: any) => {
+        const t0 = performance.now();
+        
+        if (result.transaction) {
+          // Transform WebSocket format to Enhanced format locally
+          const enhanced = WebSocketTransformer.transform(result);
+          
+          if (!enhanced) return;
+          
+          const t2 = performance.now();
+          
+          // Parse transaction
+          const parsed = TransactionParser.parse(enhanced, tokenAddress);
+          
+          if (parsed) {
+            const t3 = performance.now();
+            
+            // Broadcast to all clients subscribed to this token
+            const tokenConnections = connections.get(tokenAddress);
+            if (tokenConnections) {
+              const eventData = {
+                type: 'transaction',
+                transaction: parsed,
+                _timing: {
+                  transform: Math.round(t2 - t0),
+                  parse: Math.round(t3 - t2),
+                  total: Math.round(t3 - t0)
+                },
+                _source: 'websocket'
+              };
+              
+              tokenConnections.forEach(ctrl => {
+                try {
+                  const message = `data: ${JSON.stringify(eventData)}\n\n`;
+                  ctrl.enqueue(encoder.encode(message));
+                } catch (err) {
+                  // Client disconnected, will be cleaned up
+                }
+              });
+            }
+
+            console.log(`⚡ WebSocket TX: ${parsed.type} ${parsed.solAmount} SOL in ${Math.round(t3 - t0)}ms`);
+          }
+        }
+      };
+
+      // Create or reuse WebSocket connection for this token
       const connectHeliusWebSocket = () => {
+        // Check if WebSocket already exists for this token
+        if (websockets.has(tokenAddress)) {
+          const existingWs = websockets.get(tokenAddress)!;
+          if (existingWs.readyState === WebSocket.OPEN) {
+            console.log(`♻️ Reusing WebSocket for ${tokenAddress.slice(0, 8)}...`);
+            sendEvent({ 
+              type: 'connected', 
+              message: 'Connected to shared WebSocket',
+              tokenAddress: tokenAddress.slice(0, 8) + '...'
+            });
+            return; // Reuse existing connection
+          } else {
+            // Clean up dead WebSocket
+            websockets.delete(tokenAddress);
+          }
+        }
+
         const wsUrl = `wss://atlas-mainnet.helius-rpc.com?api-key=${process.env.HELIUS_API_KEY}`;
         
-        heliusWs = new WebSocket(wsUrl);
+        const heliusWs = new WebSocket(wsUrl);
+        websockets.set(tokenAddress, heliusWs);
 
         heliusWs.on('open', () => {
           console.log(`🔌 WebSocket connected for ${tokenAddress.slice(0, 8)}...`);
           
           // Subscribe to transactions
-          heliusWs!.send(JSON.stringify({
+          heliusWs.send(JSON.stringify({
             jsonrpc: '2.0',
             id: 1,
             method: 'transactionSubscribe',
@@ -64,16 +124,24 @@ export async function GET(req: NextRequest) {
             ]
           }));
 
-          sendEvent({ 
-            type: 'connected', 
-            message: 'WebSocket connected - listening for transactions',
-            tokenAddress: tokenAddress.slice(0, 8) + '...'
-          });
+          // Notify all clients
+          const tokenConnections = connections.get(tokenAddress);
+          if (tokenConnections) {
+            const eventData = { 
+              type: 'connected', 
+              message: 'WebSocket connected - listening for transactions',
+              tokenAddress: tokenAddress.slice(0, 8) + '...'
+            };
+            tokenConnections.forEach(ctrl => {
+              try {
+                const message = `data: ${JSON.stringify(eventData)}\n\n`;
+                ctrl.enqueue(encoder.encode(message));
+              } catch (err) {}
+            });
+          }
         });
 
         heliusWs.on('message', async (data: Buffer) => {
-          const t0 = performance.now();
-          
           try {
             const response = JSON.parse(data.toString());
             
@@ -85,79 +153,7 @@ export async function GET(req: NextRequest) {
 
             // Handle transaction notification
             if (response.params?.result) {
-              const result = response.params.result;
-              const t1 = performance.now();
-              
-              // Save full transaction to file for analysis
-              try {
-                const filePath = join(process.cwd(), 'enhanced-websocket-transaction.json');
-                writeFileSync(filePath, JSON.stringify(response.params.result, null, 2));
-                console.log(`💾 Saved transaction to enhanced-websocket-transaction.json`);
-              } catch (err) {
-                console.error('Failed to save transaction:', err);
-              }
-              
-              
-              console.log(`📝 Transaction received in ${Math.round(t1 - t0)}ms`);
-              console.log('Result structure:', {
-                hasTransaction: !!result.transaction,
-                hasSlot: !!result.slot,
-                hasSignature: !!result.signature,
-                keys: Object.keys(result)
-              });
-              
-              // The transaction data is in result.transaction
-              if (result.transaction) {
-                const t1 = performance.now();
-                
-                console.log(`📝 Transaction received in ${Math.round(t1 - t0)}ms`);
-                
-                // Transform WebSocket format to Enhanced format locally (no API call!)
-                const enhanced = WebSocketTransformer.transform(result);
-                
-                if (!enhanced) {
-                  console.log('❌ Failed to transform transaction');
-                  return;
-                }
-                
-                const t2 = performance.now();
-                console.log(`🔄 Local transformation took ${Math.round(t2 - t1)}ms`);
-                console.log(`📊 Enhanced data:`, {
-                  tokenTransfers: enhanced.tokenTransfers?.length,
-                  nativeTransfers: enhanced.nativeTransfers?.length,
-                  feePayer: enhanced.feePayer?.slice(0, 8),
-                  instructions: enhanced.instructions?.length
-                });
-              
-                // Parse transaction
-                const parsed = TransactionParser.parse(enhanced, tokenAddress);
-              
-                if (parsed) {
-                  console.log('Parse result:', `${parsed.type} ${parsed.solAmount} SOL`);
-                  const t3 = performance.now();
-                
-                  sendEvent({
-                    type: 'transaction',
-                    transaction: parsed,
-                    _timing: {
-                      receive: Math.round(t1 - t0),
-                      transform: Math.round(t2 - t1),
-                      parse: Math.round(t3 - t2),
-                      total: Math.round(t3 - t0)
-                    },
-                    _source: 'websocket'
-                  });
-
-                  console.log(`⚡ WebSocket TX: ${parsed.type} ${parsed.solAmount} SOL in ${Math.round(t3 - t0)}ms`);
-                } else {
-                  console.log('❌ Parser returned null - checking tokenTransfers:');
-                  const ourTokenTransfers = enhanced.tokenTransfers?.filter(t => t.mint === tokenAddress);
-                  console.log(`   Our token (${tokenAddress.slice(0, 8)}...) transfers:`, ourTokenTransfers?.length || 0);
-                  if (ourTokenTransfers && ourTokenTransfers.length > 0) {
-                    console.log(`   First transfer:`, ourTokenTransfers[0]);
-                  }
-                }
-              }
+              await processTransaction(response.params.result);
             }
           } catch (error) {
             console.error('WebSocket message error:', error);
@@ -166,18 +162,29 @@ export async function GET(req: NextRequest) {
 
         heliusWs.on('error', (error) => {
           console.error('WebSocket error:', error);
-          sendEvent({ type: 'error', message: 'WebSocket connection error' });
+          websockets.delete(tokenAddress);
         });
 
         heliusWs.on('close', () => {
           console.log(`🔌 WebSocket disconnected for ${tokenAddress.slice(0, 8)}...`);
+          websockets.delete(tokenAddress);
           
-          // Reconnect if connection is still active
-          if (!isClosed) {
+          // Reconnect if there are still clients
+          const tokenConnections = connections.get(tokenAddress);
+          if (tokenConnections && tokenConnections.size > 0) {
             console.log('Reconnecting WebSocket in 3s...');
             setTimeout(connectHeliusWebSocket, 3000);
           }
         });
+
+        // Keep WebSocket alive
+        const wsPing = setInterval(() => {
+          if (heliusWs.readyState === WebSocket.OPEN) {
+            heliusWs.ping();
+          } else {
+            clearInterval(wsPing);
+          }
+        }, 10000);
       };
 
       // Start WebSocket connection
@@ -195,31 +202,25 @@ export async function GET(req: NextRequest) {
         sendEvent({ type: 'heartbeat', timestamp: Date.now() });
       }, 30000);
 
-      // Send ping to WebSocket every 10s to prevent timeout
-      const wsPing = setInterval(() => {
-        if (heliusWs && heliusWs.readyState === WebSocket.OPEN) {
-          heliusWs.ping();
-        }
-      }, 10000);
-
       // Clean up on disconnect
       req.signal.addEventListener('abort', () => {
         isClosed = true;
         clearInterval(heartbeat);
-        clearInterval(wsPing);
         
-        // Close WebSocket
-        if (heliusWs) {
-          heliusWs.close();
-          heliusWs = null;
-        }
-        
-        // Remove this connection from webhook delivery
+        // Remove this connection
         const tokenConnections = connections.get(tokenAddress);
         if (tokenConnections) {
           tokenConnections.delete(controller);
+          
+          // If no more clients, close the WebSocket
           if (tokenConnections.size === 0) {
             connections.delete(tokenAddress);
+            const ws = websockets.get(tokenAddress);
+            if (ws) {
+              ws.close();
+              websockets.delete(tokenAddress);
+              console.log(`🔴 Closed WebSocket for ${tokenAddress.slice(0, 8)}... (no clients)`);
+            }
           }
         }
         
@@ -241,5 +242,6 @@ export async function GET(req: NextRequest) {
   });
 }
 
-// Export connections for webhook route
-export { connections };
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
