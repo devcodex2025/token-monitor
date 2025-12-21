@@ -1,5 +1,5 @@
 {
-  "name": "token-monitor",
+  "name": "pump-fun-token-monitor",
   "version": "1.0.0",
   "description": "Pump.fun Token Transaction Monitor",
   "type": "module",

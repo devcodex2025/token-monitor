@@ -1,4 +1,4 @@
-# Solana Token Monitor
+# Pump.fun Token Monitor
 
 A real-time transaction tracker for Solana tokens, powered by **Helius Webhooks**. Monitor buys, sells, and DEX activity with **zero latency** via instant push notifications.
 

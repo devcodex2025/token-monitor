@@ -43,7 +43,7 @@ let stats = {
   sellVolumeSOL: 0
 };
 
-console.log('\x1b[36m%s\x1b[0m', '🚀 Starting Token Monitor CLI...');
+console.log('\x1b[36m%s\x1b[0m', '🚀 Starting Pump.fun Token Monitor CLI...');
 console.log(`Target Token: ${tokenAddress}`);
 console.log('Waiting for transactions...\n');
 
@@ -70,7 +70,7 @@ function printDashboard() {
   output += '\x1b[2J\x1b[3J\x1b[H';
   
   // Header
-  output += '\x1b[36m🚀 Token Monitor CLI\x1b[0m\n';
+  output += '\x1b[36m🚀 Pump.fun Token Monitor CLI\x1b[0m\n';
   output += `Target Token: ${tokenAddress}\n`;
   output += `Last Update: ${new Date().toLocaleTimeString()}\n`;
   output += '-'.repeat(110) + '\n';

@@ -214,6 +214,24 @@ export class TransactionParser {
 
       // If this is a Meteora transaction, check what type it is
       if (meteoraInstructions && meteoraInstructions.length > 0) {
+        // Check for specific instruction discriminators
+        const DISCRIMINATORS = {
+          ADD_LIQUIDITY: '4Co7us6MBHJN',
+          REMOVE_LIQUIDITY: '7FKxUv3oxZYZ',
+          // SWAP: 'fx9RHbGFfZ8h' // We let swaps fall through to standard BUY/SELL logic
+        };
+
+        for (const ix of meteoraInstructions) {
+          if (ix.data) {
+            if (ix.data.startsWith(DISCRIMINATORS.ADD_LIQUIDITY)) {
+              return this.parseAddLiquidity(heliusTx, tokenMint, feePayer);
+            }
+            if (ix.data.startsWith(DISCRIMINATORS.REMOVE_LIQUIDITY)) {
+              return this.parseRemoveLiquidity(heliusTx, tokenMint, null, feePayer);
+            }
+          }
+        }
+
         const WSOL_MINT = 'So11111111111111111111111111111111111111112';
         
         // 1. Analyze Flow: Calculate Net Flow for Token and SOL

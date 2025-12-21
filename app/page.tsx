@@ -9,11 +9,19 @@ import StatusBar from '@/components/StatusBar';
 import { Transaction, TokenMonitorConfig } from '@/types';
 import Image from 'next/image';
 
+interface TokenInfo {
+  name: string;
+  symbol: string;
+  image: string;
+  decimals: number;
+}
+
 export default function Home() {
   const [config, setConfig] = useState<TokenMonitorConfig>({
     tokenAddress: '',
     mode: 'live',
   });
+  const [tokenInfo, setTokenInfo] = useState<TokenInfo | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -51,8 +59,20 @@ export default function Home() {
     setIsLoading(true);
     setError(null);
     setTransactions([]);
+    setTokenInfo(null);
 
     try {
+      // Fetch token info
+      try {
+        const infoResponse = await fetch(`/api/token-info?address=${config.tokenAddress}`);
+        if (infoResponse.ok) {
+          const info = await infoResponse.json();
+          setTokenInfo(info);
+        }
+      } catch (e) {
+        console.error('Failed to fetch token info', e);
+      }
+
       // Fetch historical transactions if "all" mode
       if (config.mode === 'all') {
         const response = await fetch('/api/transactions', {
@@ -284,6 +304,34 @@ export default function Home() {
                 </svg>
                 Configuration
               </div>
+
+              {tokenInfo && (
+                <div className="flex items-center gap-4 p-4 bg-terminal-bg/50 rounded-lg border border-terminal-border/50">
+                  {tokenInfo.image ? (
+                    <div className="relative h-12 w-12 rounded-full overflow-hidden border border-terminal-border">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img 
+                        src={tokenInfo.image} 
+                        alt={tokenInfo.symbol}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-12 w-12 rounded-full bg-terminal-panel border border-terminal-border flex items-center justify-center text-xl">
+                      🪙
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="font-bold text-white text-lg">{tokenInfo.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-terminal-success font-mono font-bold">{tokenInfo.symbol}</span>
+                      <span className="text-xs text-terminal-muted px-1.5 py-0.5 rounded bg-terminal-bg border border-terminal-border">
+                        {tokenInfo.decimals} dec
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <TokenInput
                 value={config.tokenAddress}

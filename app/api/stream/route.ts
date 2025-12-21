@@ -83,6 +83,12 @@ export async function GET(req: NextRequest) {
 
       // Create or reuse WebSocket connection for this token
       const connectHeliusWebSocket = () => {
+        if (!process.env.HELIUS_API_KEY) {
+          console.error('❌ HELIUS_API_KEY is missing');
+          sendEvent({ type: 'error', message: 'Server configuration error: Missing API Key' });
+          return;
+        }
+
         // Check if WebSocket already exists for this token
         if (websockets.has(tokenAddress)) {
           const existingWs = websockets.get(tokenAddress)!;
@@ -106,6 +112,7 @@ export async function GET(req: NextRequest) {
 
         const wsUrl = `wss://atlas-mainnet.helius-rpc.com?api-key=${process.env.HELIUS_API_KEY}`;
         
+        console.log(`🔌 Connecting to Helius WebSocket for ${tokenAddress.slice(0, 8)}...`);
         const heliusWs = new WebSocket(wsUrl);
         websockets.set(tokenAddress, heliusWs);
 
@@ -166,6 +173,7 @@ export async function GET(req: NextRequest) {
 
         heliusWs.on('error', (error) => {
           console.error('WebSocket error:', error);
+          sendEvent({ type: 'error', message: 'Upstream WebSocket connection failed' });
           websockets.delete(tokenAddress);
         });
 
