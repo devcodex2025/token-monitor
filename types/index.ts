@@ -19,14 +19,22 @@ export interface TokenMonitorConfig {
 export interface HeliusTransaction {
   signature: string;
   timestamp: number;
+  slot?: number;
   type: string;
   source?: string;
   feePayer: string;
+  fee?: number;
+  transactionError?: any;
+  instructions?: Array<any>;
+  events?: any;
   tokenTransfers?: Array<{
     fromUserAccount: string;
     toUserAccount: string;
+    fromTokenAccount?: string;
+    toTokenAccount?: string;
     tokenAmount: number;
     mint: string;
+    tokenStandard?: string;
   }>;
   nativeTransfers?: Array<{
     fromUserAccount: string;
@@ -35,6 +43,7 @@ export interface HeliusTransaction {
   }>;
   accountData?: Array<{
     account: string;
+    nativeBalanceChange?: number;
     tokenBalanceChanges?: Array<{
       mint: string;
       rawTokenAmount: {
