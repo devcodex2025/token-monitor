@@ -4,6 +4,7 @@ import { MeteoraParser } from './parsers/meteora';
 import { DFlowParser } from './parsers/dflow';
 import { JupiterParser } from './parsers/jupiter';
 import { OKXParser } from './parsers/okx';
+import { OnchainLabsParser } from './parsers/onchainlabs';
 import { DexParser } from './parsers/base';
 
 export class TransactionParser {
@@ -13,6 +14,7 @@ export class TransactionParser {
     new DFlowParser(),
     new JupiterParser(),
     new OKXParser(),
+    new OnchainLabsParser(),
   ];
 
   static parse(heliusTx: HeliusTransaction, tokenMint: string): Transaction | null {

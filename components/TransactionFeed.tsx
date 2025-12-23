@@ -92,6 +92,11 @@ const DEX_INFO: Record<string, { name: string; logo?: string; color?: string }> 
     logo: '/logos/dflow.svg',
     color: '#FF4F98'
   },
+  'Onchain Labs': {
+    name: 'Onchain Labs',
+    logo: '/logos/okx.webp', // Using OKX logo as fallback since it's related to OKX DEX
+    color: '#000000'
+  },
 };
 
 interface TransactionFeedProps {
