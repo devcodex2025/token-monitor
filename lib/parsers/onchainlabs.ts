@@ -52,14 +52,26 @@ export class OnchainLabsParser extends BaseParser {
     // Check for WSOL transfers first (common in DEX swaps)
     const WSOL_MINT = 'So11111111111111111111111111111111111111112';
     if (tokenTransfers) {
+        // First pass: check for direct user involvement
         for (const transfer of tokenTransfers) {
             if (transfer.mint === WSOL_MINT) {
-                // For BUY: User sends WSOL (fromUserAccount === wallet)
-                // For SELL: User receives WSOL (toUserAccount === wallet)
                 if (type === 'BUY' && transfer.fromUserAccount === wallet) {
                     solAmount += transfer.tokenAmount;
                 } else if (type === 'SELL' && transfer.toUserAccount === wallet) {
                     solAmount += transfer.tokenAmount;
+                }
+            }
+        }
+
+        // Second pass: if 0, check for any significant WSOL transfer (likely the router/pool)
+        if (solAmount === 0) {
+             for (const transfer of tokenTransfers) {
+                if (transfer.mint === WSOL_MINT) {
+                    // We take the largest WSOL transfer as the likely swap value
+                    // This is a heuristic but works for most router-based swaps where user doesn't touch WSOL
+                    if (transfer.tokenAmount > solAmount) {
+                        solAmount = transfer.tokenAmount;
+                    }
                 }
             }
         }

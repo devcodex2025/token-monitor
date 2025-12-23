@@ -385,7 +385,7 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="text-terminal-muted text-xs">{isClaimFees ? '+' : '-'}</span>
-                  <span className="text-xs">{transaction.tokenAmount.toLocaleString('en-US', { maximumFractionDigits: 2 })} tokens</span>
+                  <span className="text-xs">{transaction.tokenAmount.toLocaleString('en-US', { maximumFractionDigits: 6 })} tokens</span>
                 </div>
                 {/* Show combined Claim Fees if present */}
                 {transaction.claimFeesAmount && transaction.claimFeesAmount > 0 && (
@@ -405,7 +405,7 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="text-terminal-muted text-xs">+</span>
-                  <span className="text-xs">{transaction.tokenAmount.toLocaleString('en-US', { maximumFractionDigits: 2 })} tokens</span>
+                  <span className="text-xs">{transaction.tokenAmount.toLocaleString('en-US', { maximumFractionDigits: 6 })} tokens</span>
                 </div>
               </div>
             ) : isTransfer ? (
@@ -413,7 +413,7 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
               <div className="flex flex-col items-end gap-0.5">
                 <div className="flex items-center gap-1">
                   <span className="text-terminal-muted text-xs">↔️</span>
-                  <span className="text-xs">{transaction.tokenAmount.toLocaleString('en-US', { maximumFractionDigits: 2 })} tokens</span>
+                  <span className="text-xs">{transaction.tokenAmount.toLocaleString('en-US', { maximumFractionDigits: 6 })} tokens</span>
                 </div>
                 <div className="text-xs text-terminal-muted/70">
                   Wallet transfer
@@ -427,7 +427,7 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
           </div>
           {!isRemoveLiquidity && !isClaimFees && !isAddLiquidity && !isTransfer && (
             <div className="text-xs text-terminal-muted">
-              {transaction.tokenAmount.toLocaleString('en-US')} tokens
+              {transaction.tokenAmount.toLocaleString('en-US', { maximumFractionDigits: 6 })} tokens
             </div>
           )}
         </div>

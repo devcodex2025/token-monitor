@@ -14,12 +14,15 @@ export const shortenAddress = (address: string, chars = 4): string => {
 };
 
 export const formatSolAmount = (amount: number): string => {
-  return amount.toFixed(5);
+  return amount.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 9,
+  });
 };
 
 export const formatTokenAmount = (amount: number, decimals: number = 6): string => {
   return (amount / Math.pow(10, decimals)).toLocaleString('en-US', {
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 6,
   });
 };
 
