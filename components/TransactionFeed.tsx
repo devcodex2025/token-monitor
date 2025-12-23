@@ -47,28 +47,24 @@ const DEX_INFO: Record<string, { name: string; logo?: string; color?: string }> 
     logo: 'https://pump.fun/logo.png',
     color: '#10b981' // emerald-500
   },
-  'PUMP_FUN_AMM': { 
-    name: 'Pump.fun AMM', 
+  'PUMP_FUN': { 
+    name: 'Pump.fun', 
     logo: 'https://pump.fun/logo.png',
     color: '#10b981' // emerald-500
   },
-  'MOONSHOT': { 
-    name: 'Moonshot', 
-    color: '#8b5cf6' // violet-500
-  },
-  'BOOP.FUN': { 
-    name: 'Boop.fun', 
-    logo: '/logos/boopfun_icon.webp',
-    color: '#ec4899' // pink-500
+  'PUMP FUN': { 
+    name: 'Pump.fun', 
+    logo: 'https://pump.fun/logo.png',
+    color: '#10b981' // emerald-500
   },
   'OKX_DEX_ROUTER': { 
     name: 'OKX DEX', 
-    logo: 'https://static.okx.com/cdn/assets/imgs/241/5D665720D6835725.png',
+    logo: '/logos/okx.webp',
     color: '#000000'
   },
   'OKX DEX': { 
     name: 'OKX DEX', 
-    logo: 'https://static.okx.com/cdn/assets/imgs/241/5D665720D6835725.png',
+    logo: '/logos/okx.webp',
     color: '#000000'
   },
   'METEORA DLMM': {  
@@ -85,6 +81,16 @@ const DEX_INFO: Record<string, { name: string; logo?: string; color?: string }> 
     name: 'Meteora DAMM v2', 
     logo: '/logos/meteora-logo.svg',
     color: '#9333ea' // purple-600
+  },
+  'DFlow': {
+    name: 'DFlow',
+    logo: '/logos/dflow.svg',
+    color: '#FF4F98'
+  },
+  'DFLOW': {
+    name: 'DFlow',
+    logo: '/logos/dflow.svg',
+    color: '#FF4F98'
   },
 };
 
