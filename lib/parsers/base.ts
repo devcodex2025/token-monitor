@@ -47,15 +47,35 @@ export abstract class BaseParser implements DexParser {
         const WSOL_MINT = 'So11111111111111111111111111111111111111112';
         for (const transfer of tokenTransfers) {
           if (transfer.mint === WSOL_MINT) {
-             const isRelevant = (type === 'BUY' && transfer.fromUserAccount === wallet) ||
+             let isRelevant = (type === 'BUY' && transfer.fromUserAccount === wallet) ||
                                 (type === 'SELL' && transfer.toUserAccount === wallet);
              
+             // Fallback: Check feePayer if wallet is different
+             // This handles cases where the "wallet" identified (e.g. from token transfer) 
+             // is different from the account paying/receiving the SOL (e.g. fee payer)
+             if (!isRelevant && heliusTx.feePayer) {
+                 isRelevant = (type === 'BUY' && transfer.fromUserAccount === heliusTx.feePayer) ||
+                              (type === 'SELL' && transfer.toUserAccount === heliusTx.feePayer);
+             }
+
              if (isRelevant) {
-               let amount = transfer.tokenAmount;
-               if (amount > 1000000) amount = amount / 1e9; // Normalize lamports
-               solAmount += amount;
+               solAmount += transfer.tokenAmount;
              }
           }
+        }
+
+        // Global Fallback: If still 0, take the largest WSOL transfer
+        // This handles complex routing where wallet/feePayer matching fails
+        if (solAmount === 0) {
+             let maxAmount = 0;
+             for (const transfer of tokenTransfers) {
+                 if (transfer.mint === WSOL_MINT) {
+                     if (transfer.tokenAmount > maxAmount) {
+                         maxAmount = transfer.tokenAmount;
+                     }
+                 }
+             }
+             solAmount = maxAmount;
         }
       }
 

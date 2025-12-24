@@ -137,11 +137,20 @@ export class TransactionParser {
             if (transfer.mint === USDC_MINT) usdcAmount += transfer.tokenAmount;
             else if (transfer.mint === USDT_MINT) usdtAmount += transfer.tokenAmount;
             else if (transfer.mint === WSOL_MINT) {
-              let amount = transfer.tokenAmount;
-              if (amount > 1000000) amount = amount / 1e9;
-              wsolAmount += amount;
+              wsolAmount += transfer.tokenAmount;
             }
           }
+        }
+        
+        // Fallback: If no relevant WSOL found, check for any WSOL transfer
+        if (wsolAmount === 0) {
+           for (const transfer of tokenTransfers) {
+             if (transfer.mint === WSOL_MINT) {
+               if (transfer.tokenAmount > wsolAmount) {
+                 wsolAmount = transfer.tokenAmount;
+               }
+             }
+           }
         }
       }
 

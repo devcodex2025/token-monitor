@@ -1,5 +1,6 @@
 import { HeliusTransaction, Transaction } from '../../types';
 import { BaseParser } from './base';
+import bs58 from 'bs58';
 
 export class JupiterParser extends BaseParser {
   private static JUPITER_V6_PROGRAM_ID = 'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4';
@@ -136,6 +137,46 @@ export class JupiterParser extends BaseParser {
             // But if solAmount is 0, we definitely take native.
             if (solAmount === 0) {
                 solAmount += nativeAmount / 1e9;
+            }
+        }
+    }
+
+    // 3. Fallback: Check inner instructions for System Program transfers
+    // This handles cases where SOL is transferred via CPI but not captured in nativeTransfers or WSOL
+    if (solAmount === 0 && instructions) {
+        const jupiterInstruction = instructions.find((ix: any) => 
+            ix.programId === JupiterParser.JUPITER_V6_PROGRAM_ID ||
+            ix.programId === JupiterParser.JUPITER_LIMIT_ORDER_PROGRAM_ID
+        );
+
+        if (jupiterInstruction && jupiterInstruction.innerInstructions) {
+            for (const inner of jupiterInstruction.innerInstructions) {
+                if (inner.programId === '11111111111111111111111111111111') { // System Program
+                    try {
+                        const data = Buffer.from(bs58.decode(inner.data));
+                        // Transfer instruction: index (4 bytes) + amount (8 bytes)
+                        if (data.length >= 12) {
+                            const instructionIndex = data.readUInt32LE(0);
+                            if (instructionIndex === 2) { // Transfer
+                                const amount = Number(data.readBigUInt64LE(4));
+                                const source = inner.accounts[0];
+                                const dest = inner.accounts[1];
+                                
+                                if (type === 'BUY') {
+                                    if (source === wallet) {
+                                        solAmount += amount / 1e9;
+                                    }
+                                } else { // SELL
+                                    if (dest === wallet) {
+                                        solAmount += amount / 1e9;
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
+                }
             }
         }
     }
