@@ -97,6 +97,11 @@ const DEX_INFO: Record<string, { name: string; logo?: string; color?: string }> 
     logo: '/logos/okx.webp', // Using OKX logo as fallback since it's related to OKX DEX
     color: '#000000'
   },
+  'PHANTOM': {
+    name: 'Phantom',
+    logo: '/logos/phantom.svg',
+    color: '#AB9FF2'
+  },
 };
 
 interface TransactionFeedProps {

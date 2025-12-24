@@ -42,7 +42,8 @@ export class TransactionParser {
       const { signature, timestamp, tokenTransfers, nativeTransfers, accountData, type, feePayer, source } = heliusTx;
 
       // Check if this is a simple wallet-to-wallet transfer
-      const isSimpleTransfer = type === 'TRANSFER' && source === 'SOLANA_PROGRAM_LIBRARY';
+      // Relaxed check: Accept any TRANSFER type, or specific sources known for transfers
+      const isSimpleTransfer = type === 'TRANSFER';
       
       if (isSimpleTransfer) {
         const tokenTransfer = tokenTransfers?.find(t => t.mint === tokenMint);
@@ -58,7 +59,7 @@ export class TransactionParser {
           timestamp: Date.now(),
           blockTime: timestamp,
           displayToken: 'Transfer',
-          dex: undefined,
+          dex: source,
         };
       }
 
