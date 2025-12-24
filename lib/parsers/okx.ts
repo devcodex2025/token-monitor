@@ -133,18 +133,31 @@ export class OKXParser extends BaseParser {
 
     // 3. Fallback: If SOL amount is still 0, check for intermediate WSOL transfers
     // This handles Token -> Token swaps where the route goes through SOL (Token A -> SOL -> Token B)
-    // We assume the largest WSOL transfer represents the trade value.
     if (solAmount === 0 && tokenTransfers) {
-        let maxWSOL = 0;
-        for (const transfer of tokenTransfers) {
-            if (transfer.mint === WSOL_MINT) {
-                if (transfer.tokenAmount > maxWSOL) {
-                    maxWSOL = transfer.tokenAmount;
-                }
+        // Try to find WSOL transfer matching the trade direction relative to Router
+        // If BUY, we expect User -> Router (Router receives WSOL)
+        // If SELL, we expect Router -> User (Router sends WSOL)
+        const routerWSOL = tokenTransfers.find(t => {
+            if (t.mint !== WSOL_MINT) return false;
+            
+            if (type === 'BUY') {
+                return isRouter(t.toUserAccount);
+            } else { // SELL
+                return isRouter(t.fromUserAccount);
             }
-        }
-        if (maxWSOL > 0) {
-            solAmount = maxWSOL;
+        });
+
+        if (routerWSOL) {
+            solAmount = routerWSOL.tokenAmount;
+        } else {
+            // If strict direction check fails, try to find any WSOL transfer involving the router
+            // This helps in complex routes where direction might be ambiguous
+            const anyRouterWSOL = tokenTransfers.find(t => 
+                t.mint === WSOL_MINT && (isRouter(t.fromUserAccount) || isRouter(t.toUserAccount))
+            );
+            if (anyRouterWSOL) {
+                solAmount = anyRouterWSOL.tokenAmount;
+            }
         }
     }
 
