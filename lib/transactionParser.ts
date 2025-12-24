@@ -189,6 +189,8 @@ export class TransactionParser {
           'cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG': 'METEORA_DAMM_V2',
           'proVF4pMXVaYqmy4NjniPh4pqKNfMmsihgd4wdkCX3u': 'OKX DEX',
           'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4': 'JUPITER',
+          '6m2CDdhRgxpH4WjvdzxAYBGxwdGUz5MziiL5jek2kBma': 'ONCHAIN LABS',
+          'pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ': 'ONCHAIN LABS',
         };
 
         for (const acc of accountData) {
@@ -227,6 +229,8 @@ export class TransactionParser {
       'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4',
       '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8',
       'whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc',
+      '6m2CDdhRgxpH4WjvdzxAYBGxwdGUz5MziiL5jek2kBma',
+      'pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ',
     ];
     return !knownPrograms.includes(address);
   }

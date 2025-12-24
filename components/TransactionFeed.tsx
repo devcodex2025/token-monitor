@@ -52,6 +52,11 @@ const DEX_INFO: Record<string, { name: string; logo?: string; color?: string }> 
     logo: 'https://pump.fun/logo.png',
     color: '#10b981' // emerald-500
   },
+  'PUMP_FUN_AMM': { 
+    name: 'Pump.fun AMM', 
+    logo: 'https://pump.fun/logo.png',
+    color: '#10b981' // emerald-500
+  },
   'PUMP FUN': { 
     name: 'Pump.fun', 
     logo: 'https://pump.fun/logo.png',

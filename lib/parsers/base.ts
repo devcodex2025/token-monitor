@@ -117,6 +117,8 @@ export abstract class BaseParser implements DexParser {
       'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4',
       '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8',
       'whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc',
+      '6m2CDdhRgxpH4WjvdzxAYBGxwdGUz5MziiL5jek2kBma',
+      'pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ',
     ];
     return !knownPrograms.includes(address);
   }

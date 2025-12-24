@@ -3,13 +3,18 @@ import { BaseParser } from './base';
 
 export class OnchainLabsParser extends BaseParser {
   private static PROGRAM_ID = 'pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ';
+  private static ROUTER_V1 = '6m2CDdhRgxpH4WjvdzxAYBGxwdGUz5MziiL5jek2kBma';
 
   canParse(transaction: HeliusTransaction): boolean {
     const { instructions } = transaction;
     return (
       instructions?.some((ix: any) => 
         ix.programId === OnchainLabsParser.PROGRAM_ID ||
-        ix.innerInstructions?.some((inner: any) => inner.programId === OnchainLabsParser.PROGRAM_ID)
+        ix.programId === OnchainLabsParser.ROUTER_V1 ||
+        ix.innerInstructions?.some((inner: any) => 
+            inner.programId === OnchainLabsParser.PROGRAM_ID ||
+            inner.programId === OnchainLabsParser.ROUTER_V1
+        )
       ) || false
     );
   }
@@ -36,11 +41,15 @@ export class OnchainLabsParser extends BaseParser {
         // If token is leaving a user account, it's a SELL
         // If token is entering a user account, it's a BUY
         // We assume the "UserAccount" fields in tokenTransfers are populated correctly by Helius
-        if (tokenTransfer.fromUserAccount && tokenTransfer.fromUserAccount !== OnchainLabsParser.PROGRAM_ID) {
+        if (tokenTransfer.fromUserAccount && 
+            tokenTransfer.fromUserAccount !== OnchainLabsParser.PROGRAM_ID &&
+            tokenTransfer.fromUserAccount !== OnchainLabsParser.ROUTER_V1) {
              // Likely the user
              wallet = tokenTransfer.fromUserAccount;
              type = 'SELL';
-        } else if (tokenTransfer.toUserAccount && tokenTransfer.toUserAccount !== OnchainLabsParser.PROGRAM_ID) {
+        } else if (tokenTransfer.toUserAccount && 
+                   tokenTransfer.toUserAccount !== OnchainLabsParser.PROGRAM_ID &&
+                   tokenTransfer.toUserAccount !== OnchainLabsParser.ROUTER_V1) {
              wallet = tokenTransfer.toUserAccount;
              type = 'BUY';
         }
