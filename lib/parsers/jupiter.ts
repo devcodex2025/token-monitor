@@ -32,9 +32,18 @@ export class JupiterParser extends BaseParser {
         type = 'BUY';
         wallet = feePayer;
     } else {
-        // Fallback: If feePayer is not directly involved in the token transfer (rare for Jupiter swaps),
-        // try to infer from the other side of the trade.
-        // But usually feePayer is the user.
+        // Fallback: If feePayer is not directly involved in the token transfer
+        // Check which account is involved in native transfers (paying/receiving SOL)
+        const fromInvolved = nativeTransfers?.some(t => t.fromUserAccount === tokenTransfer.fromUserAccount || t.toUserAccount === tokenTransfer.fromUserAccount);
+        const toInvolved = nativeTransfers?.some(t => t.fromUserAccount === tokenTransfer.toUserAccount || t.toUserAccount === tokenTransfer.toUserAccount);
+
+        if (fromInvolved && !toInvolved) {
+            wallet = tokenTransfer.fromUserAccount;
+            type = 'SELL';
+        } else if (toInvolved && !fromInvolved) {
+            wallet = tokenTransfer.toUserAccount;
+            type = 'BUY';
+        }
     }
 
     // Calculate SOL Amount
