@@ -421,7 +421,7 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
                   <span className="text-xs">{transaction.tokenAmount.toLocaleString('en-US', { maximumFractionDigits: 6 })} tokens</span>
                 </div>
                 <div className="text-xs text-terminal-muted/70">
-                  Wallet transfer
+                  {transaction.displayToken === 'Transfer' ? 'Wallet transfer' : transaction.displayToken || 'Wallet transfer'}
                 </div>
               </div>
             ) : (

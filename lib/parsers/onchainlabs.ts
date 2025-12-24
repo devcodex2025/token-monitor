@@ -65,7 +65,8 @@ export class OnchainLabsParser extends BaseParser {
                 // Check if this amount matches any native transfer exactly (in lamports)
                 // This handles cases where Helius returns raw lamports for WSOL transfers
                 // that correspond to native SOL movements (wrapping/unwrapping)
-                if (nativeAmounts.has(amount)) {
+                // We only check if amount is an integer, as float SOL amounts won't match integer lamports
+                if (Number.isInteger(amount) && nativeAmounts.has(amount)) {
                     amount = amount / 1e9;
                 } else if (amount > 1000000000) {
                     // Fallback: If amount > 1 billion (exceeds total SOL supply), it must be lamports
@@ -86,7 +87,7 @@ export class OnchainLabsParser extends BaseParser {
                 if (transfer.mint === WSOL_MINT) {
                     let amount = transfer.tokenAmount;
                     
-                    if (nativeAmounts.has(amount)) {
+                    if (Number.isInteger(amount) && nativeAmounts.has(amount)) {
                         amount = amount / 1e9;
                     } else if (amount > 1000000000) {
                         amount = amount / 1e9;

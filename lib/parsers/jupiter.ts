@@ -3,47 +3,92 @@ import { BaseParser } from './base';
 
 export class JupiterParser extends BaseParser {
   private static JUPITER_V6_PROGRAM_ID = 'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4';
+  private static JUPITER_LIMIT_ORDER_PROGRAM_ID = 'j1o2qRpjcyUwEvwtcfhEQefh773ZgjxcVRry7LDqg5X';
 
   canParse(transaction: HeliusTransaction): boolean {
     const { instructions } = transaction;
     return (
-      instructions?.some((ix: any) => ix.programId === JupiterParser.JUPITER_V6_PROGRAM_ID) ||
-      false
+      instructions?.some((ix: any) => 
+        ix.programId === JupiterParser.JUPITER_V6_PROGRAM_ID ||
+        ix.programId === JupiterParser.JUPITER_LIMIT_ORDER_PROGRAM_ID
+      ) || false
     );
   }
 
   parse(transaction: HeliusTransaction, tokenMint: string): Transaction | null {
-    const { signature, timestamp, tokenTransfers, nativeTransfers, feePayer } = transaction;
+    const { signature, timestamp, tokenTransfers, nativeTransfers, feePayer, instructions } = transaction;
 
-    // Find the transfer for the monitored token
-    const tokenTransfer = tokenTransfers?.find(t => t.mint === tokenMint);
-    if (!tokenTransfer) return null;
+    // Find all transfers for the monitored token
+    const relevantTransfers = tokenTransfers?.filter(t => t.mint === tokenMint) || [];
+    if (relevantTransfers.length === 0) return null;
 
     let wallet = feePayer || '';
-    let type: 'BUY' | 'SELL' = 'BUY';
+    let type: 'BUY' | 'SELL' | 'TRANSFER' = 'BUY';
+    let tokenAmount = 0;
+    let displayToken = 'SOL';
+    let dex = 'Jupiter';
+
+    // Check for Limit Order Cancel
+    const isLimitOrder = instructions?.some((ix: any) => ix.programId === JupiterParser.JUPITER_LIMIT_ORDER_PROGRAM_ID);
     
-    // Determine direction based on token flow relative to feePayer (User)
-    // If user is sending the token -> SELL
-    // If user is receiving the token -> BUY
-    if (tokenTransfer.fromUserAccount === feePayer) {
-        type = 'SELL';
-        wallet = feePayer;
-    } else if (tokenTransfer.toUserAccount === feePayer) {
+    if (isLimitOrder) {
+        // Check if it's a cancel order (user receiving tokens back)
+        const incoming = relevantTransfers.filter(t => t.toUserAccount === feePayer);
+        if (incoming.length > 0) {
+            type = 'TRANSFER';
+            wallet = feePayer;
+            tokenAmount = incoming.reduce((sum, t) => sum + t.tokenAmount, 0);
+            displayToken = 'Cancel Order';
+            dex = 'Jupiter Limit Order';
+            
+            return {
+                id: signature,
+                signature,
+                type,
+                wallet,
+                tokenAmount,
+                solAmount: 0,
+                timestamp: Date.now(),
+                blockTime: timestamp,
+                displayToken,
+                dex,
+            };
+        }
+    }
+
+    // Check if feePayer is receiving or sending the token
+    const incoming = relevantTransfers.filter(t => t.toUserAccount === feePayer);
+    const outgoing = relevantTransfers.filter(t => t.fromUserAccount === feePayer);
+
+    if (incoming.length > 0) {
         type = 'BUY';
         wallet = feePayer;
+        tokenAmount = incoming.reduce((sum, t) => sum + t.tokenAmount, 0);
+    } else if (outgoing.length > 0) {
+        type = 'SELL';
+        wallet = feePayer;
+        tokenAmount = outgoing.reduce((sum, t) => sum + t.tokenAmount, 0);
     } else {
         // Fallback: If feePayer is not directly involved in the token transfer
+        // Pick the first transfer and try to guess
+        const t = relevantTransfers[0];
+        
         // Check which account is involved in native transfers (paying/receiving SOL)
-        const fromInvolved = nativeTransfers?.some(t => t.fromUserAccount === tokenTransfer.fromUserAccount || t.toUserAccount === tokenTransfer.fromUserAccount);
-        const toInvolved = nativeTransfers?.some(t => t.fromUserAccount === tokenTransfer.toUserAccount || t.toUserAccount === tokenTransfer.toUserAccount);
+        const fromInvolved = nativeTransfers?.some(nt => nt.fromUserAccount === t.fromUserAccount || nt.toUserAccount === t.fromUserAccount);
+        const toInvolved = nativeTransfers?.some(nt => nt.fromUserAccount === t.toUserAccount || nt.toUserAccount === t.toUserAccount);
 
         if (fromInvolved && !toInvolved) {
-            wallet = tokenTransfer.fromUserAccount;
+            wallet = t.fromUserAccount;
             type = 'SELL';
         } else if (toInvolved && !fromInvolved) {
-            wallet = tokenTransfer.toUserAccount;
+            wallet = t.toUserAccount;
+            type = 'BUY';
+        } else {
+            // Default fallback
+            wallet = t.toUserAccount;
             type = 'BUY';
         }
+        tokenAmount = t.tokenAmount;
     }
 
     // Calculate SOL Amount
@@ -99,7 +144,7 @@ export class JupiterParser extends BaseParser {
         transaction,
         type,
         wallet,
-        tokenTransfer.tokenAmount,
+        tokenAmount,
         tokenMint,
         'Jupiter',
         solAmount

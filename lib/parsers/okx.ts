@@ -131,6 +131,23 @@ export class OKXParser extends BaseParser {
         }
     }
 
+    // 3. Fallback: If SOL amount is still 0, check for intermediate WSOL transfers
+    // This handles Token -> Token swaps where the route goes through SOL (Token A -> SOL -> Token B)
+    // We assume the largest WSOL transfer represents the trade value.
+    if (solAmount === 0 && tokenTransfers) {
+        let maxWSOL = 0;
+        for (const transfer of tokenTransfers) {
+            if (transfer.mint === WSOL_MINT) {
+                if (transfer.tokenAmount > maxWSOL) {
+                    maxWSOL = transfer.tokenAmount;
+                }
+            }
+        }
+        if (maxWSOL > 0) {
+            solAmount = maxWSOL;
+        }
+    }
+
     return this.createTransaction(
         transaction,
         type,

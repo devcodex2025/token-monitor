@@ -43,7 +43,7 @@ export class TransactionParser {
 
       // Check if this is a simple wallet-to-wallet transfer
       // Relaxed check: Accept any TRANSFER type, or specific sources known for transfers
-      const isSimpleTransfer = type === 'TRANSFER';
+      const isSimpleTransfer = type === 'TRANSFER' || source === 'SOLANA_PROGRAM_LIBRARY';
       
       if (isSimpleTransfer) {
         const tokenTransfer = tokenTransfers?.find(t => t.mint === tokenMint);
