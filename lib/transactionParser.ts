@@ -10,9 +10,9 @@ import { DexParser } from './parsers/base';
 export class TransactionParser {
   private static parsers: DexParser[] = [
     new PumpFunParser(),
+    new JupiterParser(),
     new MeteoraParser(),
     new DFlowParser(),
-    new JupiterParser(),
     new OKXParser(),
     new OnchainLabsParser(),
   ];
