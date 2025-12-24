@@ -8,21 +8,23 @@ export class MeteoraParser extends BaseParser {
     ADD_LIQUIDITY_STRATEGY: '2GpD59YMjQrR',
     REMOVE_LIQUIDITY: '7FKxUv3oxZY',
     REMOVE_LIQUIDITY_BY_RANGE: 'BH9xzWhK5ook',
+    CLAIM_FEE: 'fx9RHbGFfZ9',
   };
 
   canParse(transaction: HeliusTransaction): boolean {
-    const { instructions } = transaction;
+    const allInstructions = this.getAllInstructions(transaction);
     return (
-      instructions?.some((ix: any) => ix.programId === MeteoraParser.METEORA_DLMM) ||
+      allInstructions.some((ix: any) => ix.programId === MeteoraParser.METEORA_DLMM) ||
       false
     );
   }
 
   parse(transaction: HeliusTransaction, tokenMint: string): Transaction | null {
-    const { instructions, feePayer } = transaction;
+    const { feePayer } = transaction;
+    const allInstructions = this.getAllInstructions(transaction);
     
     // Check for specific instruction discriminators
-    const meteoraInstructions = instructions?.filter((ix: any) => 
+    const meteoraInstructions = allInstructions.filter((ix: any) => 
       ix.programId === MeteoraParser.METEORA_DLMM
     );
 
@@ -37,11 +39,93 @@ export class MeteoraParser extends BaseParser {
               ix.data.startsWith(MeteoraParser.DISCRIMINATORS.REMOVE_LIQUIDITY_BY_RANGE)) {
             return this.parseRemoveLiquidity(transaction, tokenMint, feePayer);
           }
+          if (ix.data.startsWith(MeteoraParser.DISCRIMINATORS.CLAIM_FEE)) {
+            return this.parseClaimFees(transaction, tokenMint, feePayer);
+          }
         }
       }
     }
 
     return null; 
+  }
+
+  private getAllInstructions(transaction: HeliusTransaction): any[] {
+    const allInstructions: any[] = [];
+    if (transaction.instructions) {
+      for (const ix of transaction.instructions) {
+        allInstructions.push(ix);
+        if (ix.innerInstructions) {
+          allInstructions.push(...ix.innerInstructions);
+        }
+      }
+    }
+    return allInstructions;
+  }
+
+  private parseClaimFees(
+    heliusTx: HeliusTransaction,
+    tokenMint: string,
+    feePayer: string
+  ): Transaction | null {
+    const { signature, timestamp, tokenTransfers, nativeTransfers } = heliusTx;
+    const WSOL_MINT = 'So11111111111111111111111111111111111111112';
+
+    const calculateAmounts = (targetWallet: string) => {
+      let sol = 0;
+      let token = 0;
+
+      if (nativeTransfers) {
+        for (const transfer of nativeTransfers) {
+          if (transfer.toUserAccount === targetWallet) {
+            sol += transfer.amount / 1e9;
+          }
+        }
+      }
+
+      if (tokenTransfers) {
+        for (const transfer of tokenTransfers) {
+          if (transfer.toUserAccount === targetWallet) {
+            if (transfer.mint === WSOL_MINT) {
+              sol += transfer.tokenAmount;
+            } else if (transfer.mint === tokenMint) {
+              token += transfer.tokenAmount;
+            }
+          }
+        }
+      }
+      return { sol, token };
+    };
+
+    let wallet = feePayer;
+    let { sol: solAmount, token: tokenAmount } = calculateAmounts(wallet);
+
+    // If no amounts found for feePayer, try to find the actual user
+    if (solAmount === 0 && tokenAmount === 0 && tokenTransfers) {
+      // Find a transfer involving the token mint where the receiver is NOT the fee payer
+      const candidateTransfer = tokenTransfers.find(
+        t => t.mint === tokenMint && t.toUserAccount && t.toUserAccount !== feePayer
+      );
+
+      if (candidateTransfer) {
+        wallet = candidateTransfer.toUserAccount;
+        const result = calculateAmounts(wallet);
+        solAmount = result.sol;
+        tokenAmount = result.token;
+      }
+    }
+
+    return {
+      id: signature,
+      signature,
+      type: 'CLAIM_FEES',
+      wallet: wallet || '',
+      tokenAmount,
+      solAmount,
+      timestamp: Date.now(),
+      blockTime: timestamp,
+      displayToken: 'SOL',
+      dex: 'Meteora',
+    };
   }
 
   private parseAddLiquidity(
