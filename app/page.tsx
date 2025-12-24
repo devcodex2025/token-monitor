@@ -61,7 +61,13 @@ export default function Home() {
     setConnectionStatus('connecting');
     setError(null);
     setTransactions([]);
-    setTokenInfo(null);
+    
+    // Only clear token info if it's a new token to avoid UI jumping
+    // We can check if the current input matches the last saved one, but since we just saved it,
+    // we can rely on the fact that if we are restarting, we probably want to keep the info visible.
+    // If it's a new token, the user likely typed it in, so the jump is acceptable or we can keep the old one until new one loads.
+    // For now, let's remove the explicit clear to prevent jumping on restart.
+    // setTokenInfo(null); 
 
     try {
       // Fetch token info
@@ -291,12 +297,14 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-terminal-panel border border-terminal-border text-xs font-medium text-terminal-muted">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-terminal-panel border border-terminal-border text-xs font-medium text-terminal-muted transition-colors duration-300">
             <span className="relative flex h-2 w-2">
-              <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${connectionStatus === 'connected' ? 'animate-ping bg-terminal-success' : 'bg-terminal-danger'}`}></span>
-              <span className={`relative inline-flex rounded-full h-2 w-2 ${connectionStatus === 'connected' ? 'bg-terminal-success' : 'bg-terminal-danger'}`}></span>
+              <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 transition-all duration-500 ${connectionStatus === 'connected' ? 'animate-ping bg-terminal-success' : 'bg-terminal-danger'}`}></span>
+              <span className={`relative inline-flex rounded-full h-2 w-2 transition-all duration-500 ${connectionStatus === 'connected' ? 'bg-terminal-success' : 'bg-terminal-danger'}`}></span>
             </span>
-            {connectionStatus === 'connected' ? 'System Online' : 'System Offline'}
+            <span className="transition-opacity duration-300">
+              {connectionStatus === 'connected' ? 'System Online' : 'System Offline'}
+            </span>
           </div>
         </div>
 
