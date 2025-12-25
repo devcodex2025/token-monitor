@@ -25,6 +25,129 @@ export class JupiterParser extends BaseParser {
     }
   }
 
+  private calculateSwapValue(
+    transaction: HeliusTransaction, 
+    wallet: string, 
+    type: 'BUY' | 'SELL', 
+    tokenMint: string
+  ): { solAmount: number, displayToken: string, score: number } {
+    const { tokenTransfers, nativeTransfers, instructions } = transaction;
+    let solAmount = 0;
+    let displayToken = 'SOL';
+    let score = 0; // 0: None, 1: Unknown, 2: Stable, 3: SOL/WSOL
+
+    const WSOL_MINT = 'So11111111111111111111111111111111111111112';
+    const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+    const USDT_MINT = 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB';
+
+    // 1. Check for WSOL transfers
+    if (tokenTransfers) {
+        for (const transfer of tokenTransfers) {
+            if (transfer.mint === WSOL_MINT) {
+                if (type === 'SELL' && transfer.toUserAccount === wallet) {
+                    solAmount += transfer.tokenAmount;
+                } else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
+                    solAmount += transfer.tokenAmount;
+                }
+            }
+        }
+    }
+    if (solAmount > 0) score = 3;
+
+    // 2. If no WSOL, check Native SOL transfers
+    if (nativeTransfers) {
+        let nativeAmount = 0;
+        for (const transfer of nativeTransfers) {
+            if (type === 'SELL' && transfer.toUserAccount === wallet) {
+                nativeAmount += transfer.amount;
+            } else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
+                nativeAmount += transfer.amount;
+            }
+        }
+        if (nativeAmount > 0) {
+            // Only add if we haven't found WSOL (or if it's likely an unwrap/wrap)
+            // For simplicity, if we already have WSOL, we assume that's the swap value.
+            // But sometimes native SOL is used directly.
+            if (score < 3) {
+                solAmount += nativeAmount / 1e9;
+                score = 3;
+            }
+        }
+    }
+
+    // 3. Check inner instructions for System Program transfers (fallback for SOL)
+    if (score < 3 && instructions) {
+        const jupiterInstruction = instructions.find((ix: any) => 
+            ix.programId === JupiterParser.JUPITER_V6_PROGRAM_ID ||
+            ix.programId === JupiterParser.JUPITER_LIMIT_ORDER_PROGRAM_ID
+        );
+
+        if (jupiterInstruction && jupiterInstruction.innerInstructions) {
+            for (const inner of jupiterInstruction.innerInstructions) {
+                if (inner.programId === '11111111111111111111111111111111') { // System Program
+                    try {
+                        const data = Buffer.from(bs58.decode(inner.data));
+                        if (data.length >= 12) {
+                            const instructionIndex = data.readUInt32LE(0);
+                            if (instructionIndex === 2) { // Transfer
+                                const amount = Number(data.readBigUInt64LE(4));
+                                const source = inner.accounts[0];
+                                const dest = inner.accounts[1];
+                                
+                                if (type === 'BUY') {
+                                    if (source === wallet) {
+                                        solAmount += amount / 1e9;
+                                        score = 3;
+                                    }
+                                } else { // SELL
+                                    if (dest === wallet) {
+                                        solAmount += amount / 1e9;
+                                        score = 3;
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        // ignore
+                    }
+                }
+            }
+        }
+    }
+
+    // 4. Check for other tokens
+    if (score === 0 && tokenTransfers) {
+        for (const transfer of tokenTransfers) {
+            if (transfer.mint === tokenMint) continue;
+            if (transfer.mint === WSOL_MINT) continue;
+
+            let amount = 0;
+            if (type === 'SELL' && transfer.toUserAccount === wallet) {
+                amount = transfer.tokenAmount;
+            } else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
+                amount = transfer.tokenAmount;
+            }
+
+            if (amount > 0) {
+                solAmount = amount;
+                if (transfer.mint === USDC_MINT) {
+                    displayToken = 'USDC';
+                    score = 2;
+                } else if (transfer.mint === USDT_MINT) {
+                    displayToken = 'USDT';
+                    score = 2;
+                } else {
+                    displayToken = 'UNKNOWN';
+                    score = 1;
+                }
+                break; // Take the first one found
+            }
+        }
+    }
+
+    return { solAmount, displayToken, score };
+  }
+
   canParse(transaction: HeliusTransaction): boolean {
     const { instructions } = transaction;
     return (
@@ -84,6 +207,7 @@ export class JupiterParser extends BaseParser {
     let wallet = feePayer || '';
     let type: 'BUY' | 'SELL' | 'TRANSFER' = 'BUY';
     let tokenAmount = 0;
+    let solAmount = 0;
     let displayToken = 'SOL';
     let dex = 'Jupiter';
 
@@ -158,219 +282,68 @@ export class JupiterParser extends BaseParser {
         }
     }
 
-    // Check if feePayer is receiving or sending the token
-    const incoming = relevantTransfers.filter(t => t.toUserAccount === feePayer);
-    const outgoing = relevantTransfers.filter(t => t.fromUserAccount === feePayer);
+    // Identify candidates based on token transfers
+    const candidates: { wallet: string, type: 'BUY' | 'SELL', tokenAmount: number, solAmount: number, displayToken: string, score: number }[] = [];
+    const wallets = new Set<string>();
+    relevantTransfers.forEach(t => {
+        if (t.toUserAccount) wallets.add(t.toUserAccount);
+        if (t.fromUserAccount) wallets.add(t.fromUserAccount);
+    });
 
-    if (incoming.length > 0) {
-        type = 'BUY';
-        wallet = feePayer;
-        tokenAmount = incoming.reduce((sum, t) => sum + t.tokenAmount, 0);
-    } else if (outgoing.length > 0) {
-        type = 'SELL';
-        wallet = feePayer;
-        tokenAmount = outgoing.reduce((sum, t) => sum + t.tokenAmount, 0);
+    for (const candidateWallet of wallets) {
+        // Check BUY (receiving token)
+        const incoming = relevantTransfers.filter(t => t.toUserAccount === candidateWallet);
+        if (incoming.length > 0) {
+            const amount = incoming.reduce((sum, t) => sum + t.tokenAmount, 0);
+            const { solAmount, displayToken, score } = this.calculateSwapValue(transaction, candidateWallet, 'BUY', tokenMint);
+            candidates.push({ wallet: candidateWallet, type: 'BUY', tokenAmount: amount, solAmount, displayToken, score });
+        }
+
+        // Check SELL (sending token)
+        const outgoing = relevantTransfers.filter(t => t.fromUserAccount === candidateWallet);
+        if (outgoing.length > 0) {
+            const amount = outgoing.reduce((sum, t) => sum + t.tokenAmount, 0);
+            const { solAmount, displayToken, score } = this.calculateSwapValue(transaction, candidateWallet, 'SELL', tokenMint);
+            candidates.push({ wallet: candidateWallet, type: 'SELL', tokenAmount: amount, solAmount, displayToken, score });
+        }
+    }
+
+    // Sort candidates to find the best match
+    candidates.sort((a, b) => {
+        if (a.score !== b.score) return b.score - a.score; // Higher score first (SOL > Stable > Unknown > None)
+        if (Math.abs(a.solAmount - b.solAmount) > 1e-9) return b.solAmount - a.solAmount; // Higher value first
+        // Prefer BUY over SELL if everything else is equal
+        if (a.type === 'BUY' && b.type === 'SELL') return -1;
+        if (a.type === 'SELL' && b.type === 'BUY') return 1;
+        // Prefer feePayer if everything else is equal
+        if (a.wallet === feePayer) return -1;
+        if (b.wallet === feePayer) return 1;
+        return 0;
+    });
+
+    const best = candidates[0];
+    if (best) {
+        wallet = best.wallet;
+        type = best.type;
+        tokenAmount = best.tokenAmount;
+        solAmount = best.solAmount;
+        displayToken = best.displayToken;
     } else {
-        // Fallback: If feePayer is not directly involved in the token transfer
-        // Pick the first transfer and try to guess
-        const t = relevantTransfers[0];
-        
-        // Check which account is involved in native transfers (paying/receiving SOL)
-        const fromInvolved = nativeTransfers?.some(nt => nt.fromUserAccount === t.fromUserAccount || nt.toUserAccount === t.fromUserAccount);
-        const toInvolved = nativeTransfers?.some(nt => nt.fromUserAccount === t.toUserAccount || nt.toUserAccount === t.toUserAccount);
-
-        if (fromInvolved && !toInvolved) {
-            wallet = t.fromUserAccount;
-            type = 'SELL';
-        } else if (toInvolved && !fromInvolved) {
-            wallet = t.toUserAccount;
-            type = 'BUY';
-        } else {
-            // Default fallback
-            if (t.fromUserAccount && !t.toUserAccount) {
-                wallet = t.fromUserAccount;
-                type = 'SELL';
-            } else if (t.toUserAccount && !t.fromUserAccount) {
-                wallet = t.toUserAccount;
-                type = 'BUY';
-            } else {
-                wallet = t.toUserAccount || t.fromUserAccount || feePayer;
-                type = 'BUY';
-            }
-        }
-        tokenAmount = t.tokenAmount;
+        // Fallback if no candidates found (unlikely given relevantTransfers check)
+        wallet = feePayer;
     }
 
-    // Calculate SOL Amount
-    // Jupiter swaps often involve WSOL or Native SOL.
-    // We need to capture the value of the trade in SOL.
-    let solAmount = 0;
-    const WSOL_MINT = 'So11111111111111111111111111111111111111112';
-    const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
-    const USDT_MINT = 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB';
-
-    // 1. Check for WSOL transfers
-    if (tokenTransfers) {
-        for (const transfer of tokenTransfers) {
-            if (transfer.mint === WSOL_MINT) {
-                // For SELL: User receives WSOL
-                if (type === 'SELL' && transfer.toUserAccount === wallet) {
-                    solAmount += transfer.tokenAmount;
-                }
-                // For BUY: User sends WSOL
-                else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
-                    solAmount += transfer.tokenAmount;
-                }
-            }
-        }
-    }
-
-    // 2. If no WSOL (or mixed), check Native SOL transfers
-    // Note: Jupiter often unwraps WSOL to SOL at the end of a swap.
-    if (nativeTransfers) {
-        let nativeAmount = 0;
-        for (const transfer of nativeTransfers) {
-            if (type === 'SELL') {
-                if (transfer.toUserAccount === wallet) {
-                    nativeAmount += transfer.amount;
-                }
-            } else if (type === 'BUY') {
-                if (transfer.fromUserAccount === wallet) {
-                    nativeAmount += transfer.amount;
-                }
-            }
-        }
-        if (nativeAmount > 0) {
-            // If we found native SOL, add it. 
-            // Be careful not to double count if WSOL was unwrapped.
-            // Usually if there is a WSOL transfer AND a Native transfer of similar amount, it's an unwrap.
-            // If solAmount (WSOL) is already > 0, we might want to ignore native if it's just the unwrap.
-            // But if solAmount is 0, we definitely take native.
-            if (solAmount === 0) {
-                solAmount += nativeAmount / 1e9;
-            }
-        }
-    }
-
-    // 3. Fallback: Check inner instructions for System Program transfers
-    // This handles cases where SOL is transferred via CPI but not captured in nativeTransfers or WSOL
-    if (solAmount === 0 && instructions) {
-        const jupiterInstruction = instructions.find((ix: any) => 
-            ix.programId === JupiterParser.JUPITER_V6_PROGRAM_ID ||
-            ix.programId === JupiterParser.JUPITER_LIMIT_ORDER_PROGRAM_ID
-        );
-
-        if (jupiterInstruction && jupiterInstruction.innerInstructions) {
-            for (const inner of jupiterInstruction.innerInstructions) {
-                if (inner.programId === '11111111111111111111111111111111') { // System Program
-                    try {
-                        const data = Buffer.from(bs58.decode(inner.data));
-                        // Transfer instruction: index (4 bytes) + amount (8 bytes)
-                        if (data.length >= 12) {
-                            const instructionIndex = data.readUInt32LE(0);
-                            if (instructionIndex === 2) { // Transfer
-                                const amount = Number(data.readBigUInt64LE(4));
-                                const source = inner.accounts[0];
-                                const dest = inner.accounts[1];
-                                
-                                if (type === 'BUY') {
-                                    if (source === wallet) {
-                                        solAmount += amount / 1e9;
-                                    }
-                                } else { // SELL
-                                    if (dest === wallet) {
-                                        solAmount += amount / 1e9;
-                                    }
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        // ignore
-                    }
-                }
-            }
-        }
-    }
-
-    // 4. If still no SOL, check for other tokens (USDC, USDT, etc.)
-    if (solAmount === 0) {
-        // Helper to check transfers
-        const checkTokenTransfers = (transfers: any[]) => {
-            for (const transfer of transfers) {
-                if (transfer.mint === tokenMint) continue; // Skip monitored token
-                if (transfer.mint === WSOL_MINT) continue; // Skip WSOL (already checked)
-
-                let amount = 0;
-                if (type === 'SELL' && transfer.toUserAccount === wallet) {
-                    amount = transfer.tokenAmount;
-                } else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
-                    amount = transfer.tokenAmount;
-                }
-
-                if (amount > 0) {
-                    solAmount = amount;
-                    if (transfer.mint === USDC_MINT) displayToken = 'USDC';
-                    else if (transfer.mint === USDT_MINT) displayToken = 'USDT';
-                    else displayToken = 'UNKNOWN'; 
-                    return true;
-                }
-            }
-            return false;
-        };
-
-        // Check real token transfers
-        if (tokenTransfers && checkTokenTransfers(tokenTransfers)) {
-            // Found
-        } 
-        // Check account data changes if not found in transfers
-        else if (transaction.accountData) {
-             const accountChanges = transaction.accountData.filter(ad => 
-                ad.tokenBalanceChanges?.some(tbc => tbc.mint !== tokenMint && tbc.mint !== WSOL_MINT)
-            );
-            
-            // Construct virtual transfers for other tokens
-            const virtualTransfers = accountChanges.flatMap(ad => {
-                // There might be multiple changes, but usually one per account
-                return (ad.tokenBalanceChanges || []).map(tbc => {
-                    if (tbc.mint === tokenMint || tbc.mint === WSOL_MINT) return null;
-                    if (!tbc.rawTokenAmount) return null;
-                    
-                    const rawAmount = tbc.rawTokenAmount;
-                    const amount = parseFloat(rawAmount.tokenAmount) / Math.pow(10, rawAmount.decimals);
-                    
-                    if (amount === 0) return null;
-
-                    if (amount < 0) {
-                        return {
-                            fromUserAccount: tbc.userAccount || ad.account,
-                            toUserAccount: '', 
-                            tokenAmount: Math.abs(amount),
-                            mint: tbc.mint
-                        };
-                    } else {
-                        return {
-                            fromUserAccount: '', 
-                            toUserAccount: tbc.userAccount || ad.account,
-                            tokenAmount: amount,
-                            mint: tbc.mint
-                        };
-                    }
-                }).filter(t => t !== null);
-            });
-            
-            checkTokenTransfers(virtualTransfers);
-        }
-    }
-
-    return this.createTransaction(
-        transaction,
+    return {
+        id: signature,
+        signature,
         type,
         wallet,
         tokenAmount,
-        tokenMint,
-        'Jupiter',
         solAmount,
-        displayToken
-    );
+        timestamp: Date.now(),
+        blockTime: timestamp,
+        displayToken,
+        dex,
+    };
   }
 }
