@@ -7,6 +7,12 @@ import DateRangePicker from '@/components/DateRangePicker';
 import TransactionFeed from '@/components/TransactionFeed';
 import StatusBar from '@/components/StatusBar';
 import { Transaction, TokenMonitorConfig } from '@/types';
+import { 
+  TRANSACTION_TYPES, 
+  UNIQUE_DEX_LIST, 
+  DEX_INFO,
+  TransactionType 
+} from '@/lib/constants';
 import Image from 'next/image';
 
 interface TokenInfo {
@@ -28,6 +34,46 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+
+  // Filter State
+  const [selectedTypes, setSelectedTypes] = useState<Set<TransactionType>>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('transactionTypeFilters');
+      if (saved) {
+        try {
+          return new Set(JSON.parse(saved));
+        } catch (e) {}
+      }
+    }
+    return new Set(TRANSACTION_TYPES.map(t => t.value));
+  });
+
+  const [selectedDexNames, setSelectedDexNames] = useState<Set<string>>(new Set(UNIQUE_DEX_LIST.map(d => d.name)));
+
+  // Save filters effect
+  useEffect(() => {
+    localStorage.setItem('transactionTypeFilters', JSON.stringify(Array.from(selectedTypes)));
+  }, [selectedTypes]);
+
+  // Filter Handlers
+  const handleToggleType = (type: TransactionType) => {
+    setSelectedTypes(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(type)) newSet.delete(type);
+      else newSet.add(type);
+      return newSet;
+    });
+  };
+
+  const handleToggleDex = (name: string) => {
+    setSelectedDexNames(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(name)) newSet.delete(name);
+      else newSet.add(name);
+      return newSet;
+    });
+  };
+
   const [lastScannedSignature, setLastScannedSignature] = useState<string | null>(null);
   const [scannedCount, setScannedCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -134,61 +180,132 @@ export default function Home() {
     if ((transactions.length === 0 && !lastScannedSignature) || isLoadingMore) return;
 
     setIsLoadingMore(true);
+    
+    // Initialize cursor from state or last transaction
+    let currentCursor = lastScannedSignature || (transactions.length > 0 ? transactions[transactions.length - 1].signature : null);
+    
+    if (!currentCursor) {
+      console.warn('No cursor available for pagination');
+      setIsLoadingMore(false);
+      return;
+    }
+
+    const TARGET_BATCH_SIZE = 100;
+    // Cap attempts to prevent infinite loading if backend keeps returning empty/few
+    const MAX_BATCH_ATTEMPTS = 10; // Increased to 10 to allow searching deeper for filtered items
+    let accumulatedTxs: Transaction[] = [];
+    let attempts = 0;
+    let serverHasMore = true;
+    let finalCursor = currentCursor;
+
+    // Helper to check if a tx matches current filters
+    const matchesFilters = (tx: Transaction) => {
+      // Type Check
+      if (!selectedTypes.has(tx.type)) return false;
+      
+      // DEX Check
+      let dexName = tx.dex || '';
+      if (tx.dex && DEX_INFO[tx.dex]) {
+         dexName = DEX_INFO[tx.dex].name;
+      } else {
+         const knownInfo = Object.values(DEX_INFO).find(info => info.name === tx.dex);
+         if (knownInfo) dexName = knownInfo.name;
+      }
+      const isKnownFilter = UNIQUE_DEX_LIST.some(d => d.name === dexName);
+      return isKnownFilter ? selectedDexNames.has(dexName) : true;
+    };
+
     try {
-      const lastTx = transactions.length > 0 ? transactions[transactions.length - 1] : null;
-      // Use lastScannedSignature from API if available to avoid loops when filtering skips everything
-      // Otherwise fall back to the last visible transaction signature
-      const beforeCursor = lastScannedSignature || (lastTx ? lastTx.signature : null);
+      // Loop until we have enough transactions that MATCH OUR FILTERS or we hit a limit
+      while (
+        accumulatedTxs.filter(matchesFilters).length < TARGET_BATCH_SIZE && 
+        attempts < MAX_BATCH_ATTEMPTS && 
+        serverHasMore
+      ) {
+        attempts++;
+        const currentMatches = accumulatedTxs.filter(matchesFilters).length;
+        console.log(`Loading batch attempt ${attempts}, cursor: ${currentCursor}, matched: ${currentMatches}/${TARGET_BATCH_SIZE}`);
+        
+        const apiResponse: any = await fetch('/api/transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tokenAddress: config.tokenAddress,
+            before: currentCursor,
+          }),
+        });
+  
+        if (!apiResponse.ok) throw new Error('Failed to fetch more transactions');
+  
+        const data = await apiResponse.json();
+        const newTransactions = data.transactions || [];
+        
+        if (typeof data.rawCount === 'number') {
+          setScannedCount(prev => prev + data.rawCount);
+        }
+        
+        let nextCursor = data.lastSignature;
+        if (!nextCursor && newTransactions.length > 0) {
+          nextCursor = newTransactions[newTransactions.length - 1].signature;
+        }
+        
+        // If we got nothing and no cursor update, we're stuck
+        if (newTransactions.length === 0 && (!nextCursor || nextCursor === currentCursor)) {
+          serverHasMore = false;
+          break;
+        }
+        
+        currentCursor = nextCursor;
+        finalCursor = nextCursor; 
+        
+        accumulatedTxs = [...accumulatedTxs, ...newTransactions];
+        
+        if (typeof data.hasMore === 'boolean') {
+          serverHasMore = data.hasMore;
+        } else if (newTransactions.length === 0) {
+          serverHasMore = false;
+        }
+      }
 
-      if (!beforeCursor) {
-        console.warn('No cursor available for pagination');
-        setIsLoadingMore(false);
-        return;
+      // PRECISE TRIMMING LOGIC
+      // Ensure we add EXACTLY 100 visible transactions if we found enough
+      let visibleCount = 0;
+      let cutIndex = -1;
+      
+      // Find the index of the 100th matching transaction
+      for (let i = 0; i < accumulatedTxs.length; i++) {
+        if (matchesFilters(accumulatedTxs[i])) {
+          visibleCount++;
+          if (visibleCount === TARGET_BATCH_SIZE) {
+            cutIndex = i;
+            break;
+          }
+        }
+      }
+
+      let txsToAdd = accumulatedTxs;
+      
+      // If we found more than required, trim excess and update cursor
+      if (cutIndex !== -1 && cutIndex < accumulatedTxs.length - 1) {
+        console.log(`Trimming accumulated transactions to exactly ${TARGET_BATCH_SIZE} matches.`);
+        txsToAdd = accumulatedTxs.slice(0, cutIndex + 1);
+        // Important: Update cursor to the last preserved transaction so next load starts correctly
+        finalCursor = txsToAdd[txsToAdd.length - 1].signature;
+        // Since we trimmed, there is definitely more content potentially
+        serverHasMore = true; 
+      }
+
+      // Update state with result
+      if (finalCursor) {
+        setLastScannedSignature(finalCursor);
       }
       
-      console.log('Loading more before:', beforeCursor);
-      const response = await fetch('/api/transactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tokenAddress: config.tokenAddress,
-          before: beforeCursor,
-        }),
-      });
+      setHasMore(serverHasMore);
 
-      if (!response.ok) throw new Error('Failed to fetch more transactions');
-
-      const data = await response.json();
-      const newTransactions = data.transactions || [];
-      
-      if (typeof data.rawCount === 'number') {
-        setScannedCount(prev => prev + data.rawCount);
-      }
-      
-      let nextCursor = data.lastSignature;
-      if (!nextCursor && newTransactions.length > 0) {
-        nextCursor = newTransactions[newTransactions.length - 1].signature;
-      }
-      
-      if (nextCursor) {
-        setLastScannedSignature(nextCursor);
-      }
-
-      console.log(`Loaded ${newTransactions.length} older transactions`);
-
-
-      // Use server-provided hasMore flag if available
-      if (typeof data.hasMore === 'boolean') {
-        setHasMore(data.hasMore);
-      } else if (newTransactions.length < 100) {
-        setHasMore(false);
-      }
-
-      if (newTransactions.length > 0) {
+      if (txsToAdd.length > 0) {
         setTransactions((prev) => {
-          // Filter out any duplicates just in case
           const prevSignatures = new Set(prev.map(tx => tx.signature));
-          const uniqueNew = newTransactions.filter((tx: Transaction) => !prevSignatures.has(tx.signature));
+          const uniqueNew = txsToAdd.filter((tx: Transaction) => !prevSignatures.has(tx.signature));
           
           if (uniqueNew.length === 0) {
             console.log('No new unique transactions found');
@@ -197,18 +314,12 @@ export default function Home() {
           
           return [...prev, ...uniqueNew];
         });
+        const matchedCount = txsToAdd.filter(matchesFilters).length;
+        console.log(`Loaded ${txsToAdd.length} raw txs to find ${matchedCount} matching filters in ${attempts} attempts`);
       }
-      
-      // Auto-load logic no longer strictly needed as backend aggregates, 
-      // but if backend timeout limitation returned 0 despite hasMore, we might want to let user click again or auto
-      // For now, simpler: IF 0 items returned but hasMore is true, user can click "Load More" again (which says Scanning...)
-      // But we removed auto-load to respect "user clicks per 100" logic more strictly
-      // Actually if backend tries hard (5 attempts) and finds 0, it's safer to stop and let user decide to continue 
-      // than infinite loop frontend.
-      
-      setIsLoadingMore(false);
     } catch (err) {
       console.error('Error loading more:', err);
+    } finally {
       setIsLoadingMore(false);
     }
   };
@@ -501,6 +612,12 @@ export default function Home() {
               status={connectionStatus}
               hasMore={hasMore}
               scannedCount={scannedCount}
+              selectedTypes={selectedTypes}
+              selectedDexNames={selectedDexNames}
+              onToggleType={handleToggleType}
+              onToggleDex={handleToggleDex}
+              onSetAllTypes={setSelectedTypes}
+              onSetAllDexes={setSelectedDexNames}
             />
           </div>
         </div>

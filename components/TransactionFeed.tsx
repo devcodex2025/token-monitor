@@ -3,120 +3,12 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Transaction } from '@/types';
 import { shortenAddress, formatSolAmount, formatTime, formatDateTime, timeAgo } from '@/lib/utils';
-
-// Transaction type filter options
-type TransactionType = Transaction['type'];
-const TRANSACTION_TYPES: { value: TransactionType; label: string; emoji: string }[] = [
-  { value: 'BUY', label: 'Buy', emoji: '📈' },
-  { value: 'SELL', label: 'Sell', emoji: '📉' },
-  { value: 'ADD_LIQUIDITY', label: 'Add LP', emoji: '💧' },
-  { value: 'REMOVE_LIQUIDITY', label: 'Remove LP', emoji: '💧' },
-  { value: 'CLAIM_FEES', label: 'Claim Fees', emoji: '💰' },
-  { value: 'TRANSFER', label: 'Transfer', emoji: '↔️' },
-];
-
-// DEX Configuration
-const DEX_INFO: Record<string, { name: string; logo?: string; color?: string }> = {
-  'JUPITER': { 
-    name: 'Jupiter', 
-    logo: 'https://jup.ag/svg/jupiter-logo.svg',
-    color: '#16a34a' // green-600
-  },
-  'PUMP.FUN': { 
-    name: 'Pump.fun', 
-    logo: 'https://pump.fun/logo.png',
-    color: '#10b981' // emerald-500
-  },
-  'RAYDIUM': { 
-    name: 'Raydium', 
-    logo: 'https://img.raydium.io/logo/raydium_logo.png',
-    color: '#2563eb' // blue-600
-  },
-  'ORCA': { 
-    name: 'Orca', 
-    logo: 'https://cryptologos.cc/logos/orca-orca-logo.png?v=035',
-    color: '#f59e0b' // amber-500
-  },
-  'PUMPFUN': { 
-    name: 'Pump.fun', 
-    logo: 'https://pump.fun/logo.png',
-    color: '#10b981' // emerald-500
-  },
-  'PUMP.FUN AMM': { 
-    name: 'Pump.fun AMM', 
-    logo: 'https://pump.fun/logo.png',
-    color: '#10b981' // emerald-500
-  },
-  'PUMP_FUN': { 
-    name: 'Pump.fun', 
-    logo: 'https://pump.fun/logo.png',
-    color: '#10b981' // emerald-500
-  },
-  'PUMP_FUN_AMM': { 
-    name: 'Pump.fun AMM', 
-    logo: 'https://pump.fun/logo.png',
-    color: '#10b981' // emerald-500
-  },
-  'PUMP FUN': { 
-    name: 'Pump.fun', 
-    logo: 'https://pump.fun/logo.png',
-    color: '#10b981' // emerald-500
-  },
-  'OKX_DEX_ROUTER': { 
-    name: 'OKX DEX', 
-    logo: '/logos/okx.webp',
-    color: '#ffffff'
-  },
-  'OKX DEX': { 
-    name: 'OKX DEX', 
-    logo: '/logos/okx.webp',
-    color: '#ffffff'
-  },
-  'METEORA DLMM': {  
-    name: 'Meteora DLMM', 
-    logo: '/logos/meteora-logo.svg',
-    color: '#9333ea' // purple-600
-  },
-  'METEORA': { 
-    name: 'Meteora DLMM', 
-    logo: '/logos/meteora-logo.svg',
-    color: '#9333ea' // purple-600
-  },
-  'METEORA_DAMM_V2': { 
-    name: 'Meteora DAMM v2', 
-    logo: '/logos/meteora-logo.svg',
-    color: '#9333ea' // purple-600
-  },
-  'DFlow': {
-    name: 'DFlow',
-    logo: '/logos/dflow.svg',
-    color: '#FF4F98'
-  },
-  'DFLOW': {
-    name: 'DFlow',
-    logo: '/logos/dflow.svg',
-    color: '#FF4F98'
-  },
-  'ONCHAIN LABS': {
-    name: 'Onchain Labs',
-    logo: '/logos/okx.webp', // Using OKX logo as fallback since it's related to OKX DEX
-    color: '#ffffff'
-  },
-  'PHANTOM': {
-    name: 'Phantom',
-    logo: '/logos/phantom.svg',
-    color: '#AB9FF2'
-  },
-};
-
-// Deduplicated DEX list for filter UI
-const UNIQUE_DEX_LIST = Object.values(DEX_INFO).reduce((acc, current) => {
-  if (!acc.find(item => item.name === current.name)) {
-    acc.push(current);
-  }
-  return acc;
-}, [] as { name: string; logo?: string; color?: string }[]);
-
+import { 
+  TRANSACTION_TYPES, 
+  DEX_INFO, 
+  UNIQUE_DEX_LIST, 
+  TransactionType 
+} from '@/lib/constants';
 
 interface TransactionFeedProps {
   transactions: Transaction[];
@@ -125,63 +17,39 @@ interface TransactionFeedProps {
   status?: 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
   hasMore?: boolean;
   scannedCount?: number;
+  
+  // Filter Props
+  selectedTypes: Set<TransactionType>;
+  selectedDexNames: Set<string>;
+  onToggleType: (type: TransactionType) => void;
+  onToggleDex: (name: string) => void;
+  onSetAllTypes: (types: Set<TransactionType>) => void;
+  onSetAllDexes: (names: Set<string>) => void;
 }
 
-export default function TransactionFeed({ transactions, onLoadMore, isLoadingMore, status = 'disconnected', hasMore = true, scannedCount = 0 }: TransactionFeedProps) {
+export default function TransactionFeed({ 
+  transactions, 
+  onLoadMore, 
+  isLoadingMore, 
+  status = 'disconnected', 
+  hasMore = true, 
+  scannedCount = 0,
+  
+  // New props with defaults (though usually passed by parent)
+  selectedTypes,
+  selectedDexNames,
+  onToggleType,
+  onToggleDex,
+  onSetAllTypes,
+  onSetAllDexes
+}: TransactionFeedProps) {
   const prevTopTxSig = useRef<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isFirstRender = useRef(true);
 
-  // Filter state - load from localStorage
-  const [selectedTypes, setSelectedTypes] = useState<Set<TransactionType>>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('transactionTypeFilters');
-      if (saved) {
-        try {
-          return new Set(JSON.parse(saved));
-        } catch (e) {
-          // Fallback to all types
-        }
-      }
-    }
-    // Default: show all types
-    return new Set(TRANSACTION_TYPES.map(t => t.value));
-  });
-
-  // Save filters to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('transactionTypeFilters', JSON.stringify(Array.from(selectedTypes)));
-  }, [selectedTypes]);
-
-  // Toggle filter
-  const toggleFilter = (type: TransactionType) => {
-    setSelectedTypes(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(type)) {
-        newSet.delete(type);
-      } else {
-        newSet.add(type);
-      }
-      return newSet;
-    });
-  };
-
-  // Use unique names for selection state
-  const [selectedDexNames, setSelectedDexNames] = useState<Set<string>>(new Set(UNIQUE_DEX_LIST.map(d => d.name)));
+  // Local UI state
   const [showDexFilter, setShowDexFilter] = useState(false);
   const [showTypeFilter, setShowTypeFilter] = useState(false);
-
-  const toggleDexName = (name: string) => {
-    setSelectedDexNames(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(name)) {
-        newSet.delete(name);
-      } else {
-        newSet.add(name);
-      }
-      return newSet;
-    });
-  };
 
   // Filter and sort transactions
   const filteredAndSortedTransactions = useMemo(() => {
@@ -209,6 +77,7 @@ export default function TransactionFeed({ transactions, onLoadMore, isLoadingMor
 
   // Sort transactions by date (newest first)
   const sortedTransactions = filteredAndSortedTransactions;
+
 
   // Initialize audio
   useEffect(() => {
@@ -274,7 +143,7 @@ export default function TransactionFeed({ transactions, onLoadMore, isLoadingMor
               <span className="flex items-center gap-1">
                  <span className="text-xs">🔍</span> {scannedCount} scanned
               </span>
-              <div className="absolute bottom-full left-0 mb-2 w-64 p-2 bg-terminal-panel border border-terminal-border rounded shadow-xl hidden group-hover:block z-50 text-xs">
+              <div className="absolute top-full right-0 mt-2 w-64 p-2 bg-terminal-panel border border-terminal-border rounded shadow-xl hidden group-hover:block z-50 text-xs">
                  <p className="font-semibold mb-1 border-b border-terminal-border/50 pb-1">Filtering Details</p>
                  <p className="text-terminal-muted">Scanned {scannedCount} blocks to find {transactions.length} relevant transactions.</p>
                  <p className="mt-1 text-terminal-muted italic">Non-relevant txs (spam, other pairs) are skipped automatically.</p>
@@ -313,8 +182,8 @@ export default function TransactionFeed({ transactions, onLoadMore, isLoadingMor
                 <div className="flex justify-between items-center mb-3 pb-2 border-b border-terminal-border">
                   <span className="text-xs font-semibold text-terminal-text">Filter by Type</span>
                   <div className="flex gap-2">
-                    <button onClick={() => setSelectedTypes(new Set(TRANSACTION_TYPES.map(t => t.value)))} className="text-[10px] text-terminal-success hover:underline">Select All</button>
-                    <button onClick={() => setSelectedTypes(new Set())} className="text-[10px] text-terminal-muted hover:underline">Clear</button>
+                    <button onClick={() => onSetAllTypes(new Set(TRANSACTION_TYPES.map(t => t.value)))} className="text-[10px] text-terminal-success hover:underline">Select All</button>
+                    <button onClick={() => onSetAllTypes(new Set())} className="text-[10px] text-terminal-muted hover:underline">Clear</button>
                   </div>
                 </div>
                 
@@ -324,7 +193,7 @@ export default function TransactionFeed({ transactions, onLoadMore, isLoadingMor
                     return (
                       <button
                         key={type.value}
-                        onClick={() => toggleFilter(type.value)}
+                        onClick={() => onToggleType(type.value)}
                         className={`text-xs px-2 py-1.5 rounded transition-all flex items-center gap-2 w-full text-left border ${
                           isSelected
                             ? 'bg-terminal-surface border-terminal-border'
@@ -369,8 +238,8 @@ export default function TransactionFeed({ transactions, onLoadMore, isLoadingMor
                 <div className="flex justify-between items-center mb-3 pb-2 border-b border-terminal-border">
                   <span className="text-xs font-semibold text-terminal-text">Filter by DEX</span>
                   <div className="flex gap-2">
-                    <button onClick={() => setSelectedDexNames(new Set(UNIQUE_DEX_LIST.map(d => d.name)))} className="text-[10px] text-terminal-success hover:underline">Select All</button>
-                    <button onClick={() => setSelectedDexNames(new Set())} className="text-[10px] text-terminal-muted hover:underline">Clear</button>
+                    <button onClick={() => onSetAllDexes(new Set(UNIQUE_DEX_LIST.map(d => d.name)))} className="text-[10px] text-terminal-success hover:underline">Select All</button>
+                    <button onClick={() => onSetAllDexes(new Set())} className="text-[10px] text-terminal-muted hover:underline">Clear</button>
                   </div>
                 </div>
                 
@@ -380,7 +249,7 @@ export default function TransactionFeed({ transactions, onLoadMore, isLoadingMor
                     return (
                       <button
                         key={info.name}
-                        onClick={() => toggleDexName(info.name)}
+                        onClick={() => onToggleDex(info.name)}
                         className={`text-xs px-2 py-1.5 rounded transition-all flex items-center gap-2 w-full text-left border ${
                           isSelected
                             ? 'bg-terminal-surface border-terminal-border'
