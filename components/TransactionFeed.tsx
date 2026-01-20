@@ -189,10 +189,10 @@ export default function TransactionFeed({ transactions, onLoadMore, isLoadingMor
       .filter(tx => selectedTypes.has(tx.type))
       .filter(tx => {
         // Resolve transaction DEX to a display name
-        let dexName = tx.dex;
+        let dexName = tx.dex || '';
         
         // Check if tx.dex is a key in the config
-        if (DEX_INFO[tx.dex]) {
+        if (tx.dex && DEX_INFO[tx.dex]) {
            dexName = DEX_INFO[tx.dex].name;
         } else {
            // Fallback: check if tx.dex matches any known name value
