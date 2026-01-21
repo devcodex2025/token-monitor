@@ -48,7 +48,37 @@ export default function Home() {
     return new Set(TRANSACTION_TYPES.map(t => t.value));
   });
 
+  // Ensure new Transaction Types are added to filters when code updates
+  useEffect(() => {
+    setSelectedTypes(prev => {
+      const newSet = new Set(prev);
+      let changed = false;
+      TRANSACTION_TYPES.forEach(t => {
+        if (!newSet.has(t.value)) {
+          newSet.add(t.value);
+          changed = true;
+        }
+      });
+      return changed ? newSet : prev;
+    });
+  }, []);
+
   const [selectedDexNames, setSelectedDexNames] = useState<Set<string>>(new Set(UNIQUE_DEX_LIST.map(d => d.name)));
+
+  // Ensure new DEXes are added to filters when code updates
+  useEffect(() => {
+    setSelectedDexNames(prev => {
+      const newSet = new Set(prev);
+      let changed = false;
+      UNIQUE_DEX_LIST.forEach(d => {
+        if (!newSet.has(d.name)) {
+          newSet.add(d.name);
+          changed = true;
+        }
+      });
+      return changed ? newSet : prev;
+    });
+  }, []);
 
   // Save filters effect
   useEffect(() => {

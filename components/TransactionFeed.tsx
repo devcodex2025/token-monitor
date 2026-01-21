@@ -331,6 +331,7 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
   const isRemoveLiquidity = transaction.type === 'REMOVE_LIQUIDITY';
   const isClaimFees = transaction.type === 'CLAIM_FEES';
   const isAddLiquidity = transaction.type === 'ADD_LIQUIDITY';
+  const isCreatePool = transaction.type === 'CREATE_POOL';
   const isTransfer = transaction.type === 'TRANSFER';
   const [timeAgoStr, setTimeAgoStr] = useState(timeAgo(transaction.blockTime));
 
@@ -351,7 +352,7 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
   return (
     <div
       className={`transaction-row animate-slide-in ${
-        isBuy ? 'transaction-buy' : isSell ? 'transaction-sell' : isClaimFees ? 'transaction-claim' : isAddLiquidity ? 'transaction-add-lp' : isTransfer ? 'transaction-transfer' : 'transaction-remove'
+        isBuy ? 'transaction-buy' : isSell ? 'transaction-sell' : isClaimFees ? 'transaction-claim' : isAddLiquidity || isCreatePool ? 'transaction-add-lp' : isTransfer ? 'transaction-transfer' : 'transaction-remove'
       }`}
     >
       <div className="flex items-center gap-4 flex-1 px-4">
@@ -381,12 +382,29 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
                 ? 'bg-yellow-500/20 text-yellow-400'
                 : isAddLiquidity
                 ? 'bg-green-500/20 text-green-400'
+                : isCreatePool
+                ? 'bg-teal-500/20 text-teal-400'
                 : isTransfer
                 ? 'bg-blue-500/20 text-blue-400'
                 : 'bg-purple-500/20 text-purple-400'
             }`}
           >
             {isClaimFees ? (
+              <span className="flex items-center gap-1">
+                <span>💰</span>
+                <span>FEES</span>
+              </span>
+            ) : isAddLiquidity ? (
+              <span className="flex items-center gap-1">
+                <span>💧</span>
+                <span>+LP</span>
+              </span>
+            ) : isCreatePool ? (
+              <span className="flex items-center gap-1">
+                <span>🆕</span>
+                <span>POOL</span>
+              </span>
+            ) : isRemoveLiquidity ? (
               <span className="flex items-center gap-1">
                 <span>💰</span>
                 <span>FEES</span>
@@ -476,6 +494,17 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
                   <span className="text-xs">{transaction.tokenAmount.toLocaleString('en-US', { maximumFractionDigits: 6 })} tokens</span>
                 </div>
               </div>
+            ) : isCreatePool ? (
+              // Create Pool: Show initial supply
+              <div className="flex flex-col items-end gap-0.5">
+                <div className="flex items-center gap-1">
+                  <span className="text-terminal-muted text-xs">✨</span>
+                  <span className="text-teal-400 font-bold">Created</span>
+                </div>
+                <div className="text-xs text-terminal-muted/70">
+                  {transaction.tokenAmount > 0 ? `${(transaction.tokenAmount / 1e9).toFixed(1)}B tokens` : 'Pool Init'}
+                </div>
+              </div>
             ) : isTransfer ? (
               // Simple Transfer: show only token amount
               <div className="flex flex-col items-end gap-0.5">
@@ -493,7 +522,7 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
               </>
             )}
           </div>
-          {!isRemoveLiquidity && !isClaimFees && !isAddLiquidity && !isTransfer && (
+          {!isRemoveLiquidity && !isClaimFees && !isAddLiquidity && !isTransfer && !isCreatePool && (
             <div className="text-xs text-terminal-muted">
               {transaction.tokenAmount.toLocaleString('en-US', { maximumFractionDigits: 6 })} tokens
             </div>

@@ -5,6 +5,7 @@ import { DFlowParser } from './parsers/dflow';
 import { JupiterParser } from './parsers/jupiter';
 import { OKXParser } from './parsers/okx';
 import { OnchainLabsParser } from './parsers/onchainlabs';
+import { BagsParser } from './parsers/bags';
 import { DexParser } from './parsers/base';
 
 export class TransactionParser {
@@ -15,6 +16,7 @@ export class TransactionParser {
     new DFlowParser(),
     new OKXParser(),
     new OnchainLabsParser(),
+    new BagsParser(),
   ];
 
   static parse(heliusTx: HeliusTransaction, tokenMint: string): Transaction | null {
@@ -77,24 +79,7 @@ export class TransactionParser {
       // We will try to parse as Transfer. 
       // BUT: If it's UNKNOWN type but KNOWN Source (e.g. METEORA), we want to fall through to SWAP logic first.
       // So we only force "Transfer" return if it looks very standard.
-      if (isSimpleTransfer || (type === 'UNKNOWN' && source === 'UNKNOWN')) {
-        const tokenTransfer = tokenTransfers?.find(t => t.mint === tokenMint);
-        
-        if (tokenTransfer) {
-            return {
-            id: signature,
-            signature,
-            type: 'TRANSFER',
-            wallet: tokenTransfer.fromUserAccount || feePayer || '',
-            tokenAmount: tokenTransfer.tokenAmount || 0,
-            solAmount: 0,
-            timestamp: Date.now(),
-            blockTime: timestamp,
-            displayToken: 'Transfer',
-            dex: source,
-            };
-        }
-      }
+      const isLikelyTransfer = isSimpleTransfer || (type === 'UNKNOWN' && source === 'UNKNOWN');
 
       if (!tokenTransfers || tokenTransfers.length === 0) {
         return null;
@@ -241,6 +226,7 @@ export class TransactionParser {
           'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4': 'JUPITER',
           '6m2CDdhRgxpH4WjvdzxAYBGxwdGUz5MziiL5jek2kBma': 'ONCHAIN LABS',
           'pfeeUxB6jkeY1Hxd7CsFCAjcbHA9rWtchMGdZ6VojVZ': 'ONCHAIN LABS',
+          'dbcij3LWUppWqq96dh6gJWwBifmcGfLSB5D4DuSMaqN': 'BAGS',
         };
 
         for (const acc of accountData) {
@@ -251,10 +237,18 @@ export class TransactionParser {
         }
       }
 
+      let finalType: 'BUY' | 'SELL' | 'TRANSFER' = isBuy ? 'BUY' : 'SELL';
+      
+      // If we detected it as a Transfer initially, AND no significant value was exchanged
+      if (isLikelyTransfer && solAmount === 0) {
+          finalType = 'TRANSFER';
+          displayToken = 'Transfer';
+      }
+
       return {
         id: signature,
         signature,
-        type: isBuy ? 'BUY' : 'SELL',
+        type: finalType,
         wallet: actualWallet,
         tokenAmount: tokenTransfer.tokenAmount,
         solAmount: solAmount,

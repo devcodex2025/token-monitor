@@ -1,11 +1,12 @@
 // Transaction type filter options
-export type TransactionType = 'BUY' | 'SELL' | 'ADD_LIQUIDITY' | 'REMOVE_LIQUIDITY' | 'CLAIM_FEES' | 'TRANSFER' | 'UNKNOWN';
+export type TransactionType = 'BUY' | 'SELL' | 'ADD_LIQUIDITY' | 'REMOVE_LIQUIDITY' | 'CREATE_POOL' | 'CLAIM_FEES' | 'TRANSFER' | 'UNKNOWN';
 
 export const TRANSACTION_TYPES: { value: TransactionType; label: string; emoji: string }[] = [
   { value: 'BUY', label: 'Buy', emoji: '📈' },
   { value: 'SELL', label: 'Sell', emoji: '📉' },
   { value: 'ADD_LIQUIDITY', label: 'Add LP', emoji: '💧' },
   { value: 'REMOVE_LIQUIDITY', label: 'Remove LP', emoji: '💧' },
+  { value: 'CREATE_POOL', label: 'Create Pool', emoji: '🆕' },
   { value: 'CLAIM_FEES', label: 'Claim Fees', emoji: '💰' },
   { value: 'TRANSFER', label: 'Transfer', emoji: '↔️' },
 ];
@@ -102,6 +103,11 @@ export const DEX_INFO: Record<string, DexInfoItem> = {
     name: 'Onchain Labs',
     logo: '/logos/okx.webp', // Using OKX logo as fallback since it's related to OKX DEX
     color: '#ffffff'
+  },
+  'BAGS': {
+    name: 'Bags',
+    logo: '/logos/bags-logo.png',
+    color: '#000000'
   },
   'PHANTOM': {
     name: 'Phantom',
