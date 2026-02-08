@@ -12,6 +12,14 @@ export class HeliusService {
     tokenAddress: string,
     options: { before?: string; until?: string; limit?: number } = {}
   ): Promise<HeliusTransaction[]> {
+    const result = await this.getTransactionHistoryWithMeta(tokenAddress, options);
+    return result.data;
+  }
+
+  async getTransactionHistoryWithMeta(
+    tokenAddress: string,
+    options: { before?: string; until?: string; limit?: number } = {}
+  ): Promise<{ data: HeliusTransaction[]; headers: Record<string, unknown>; status: number }> {
     try {
       const limit = options.limit || 100;
       let url = `https://api.helius.xyz/v0/addresses/${tokenAddress}/transactions?api-key=${this.apiKey}&limit=${limit}&commitment=confirmed`;
@@ -25,7 +33,11 @@ export class HeliusService {
       }
 
       const response = await axios.get(url);
-      return response.data || [];
+      return {
+        data: response.data || [],
+        headers: response.headers || {},
+        status: response.status,
+      };
     } catch (error) {
       console.error('Error fetching transaction history:', error);
       throw error;

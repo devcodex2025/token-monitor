@@ -1,6 +1,9 @@
+import axios from 'axios';
 import { NextRequest, NextResponse } from 'next/server';
 import { HeliusService } from '@/lib/helius';
 import { TransactionParser } from '@/lib/transactionParser';
+import { getHeliusApiKeyFromRequest } from '@/lib/heliusKey';
+import { extractRateLimit } from '@/lib/heliusRateLimit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +16,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const apiKey = process.env.HELIUS_API_KEY;
+    const apiKey = getHeliusApiKeyFromRequest(request) || process.env.HELIUS_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
         { error: 'Helius API key not configured' },
@@ -28,6 +31,7 @@ export async function POST(request: NextRequest) {
     let rawCount = 0;
     let hasMore = true;
     let attempts = 0;
+    let rateLimitInfo: ReturnType<typeof extractRateLimit> = null;
     const MAX_ATTEMPTS = 10; // Optimized: Reduced from 15 to 10 to improve response time while still scanning 1000 txs
     
     // Loop to fetch until we have enough valid transactions or run out of history
@@ -35,10 +39,15 @@ export async function POST(request: NextRequest) {
         attempts++;
         console.log(`Fetching batch ${attempts}, before: ${currentBefore || 'latest'}`);
         
-        const heliusTxs = await helius.getTransactionHistory(tokenAddress, { 
+        const heliusResponse = await helius.getTransactionHistoryWithMeta(tokenAddress, { 
             before: currentBefore, 
             limit: 100 
         });
+        const heliusTxs = heliusResponse.data;
+        const batchRateLimit = extractRateLimit(heliusResponse.headers || {});
+        if (batchRateLimit) {
+          rateLimitInfo = batchRateLimit;
+        }
         
         rawCount += heliusTxs.length;
         console.log(`Batch ${attempts}: Helius returned ${heliusTxs.length} raw transactions`);
@@ -92,10 +101,25 @@ export async function POST(request: NextRequest) {
       count: validTransactions.length,
       rawCount: rawCount,
       hasMore: hasMore,
-      lastSignature: lastSignature
+      lastSignature: lastSignature,
+      rateLimit: rateLimitInfo
     });
   } catch (error) {
     console.error('API error:', error);
+    if (axios.isAxiosError(error) && error.response) {
+      const rateLimit = extractRateLimit(error.response.headers || {});
+      const status = error.response.status || 500;
+      const message =
+        status === 429
+          ? 'Helius rate limit exceeded'
+          : status === 403
+            ? 'Helius API key is not authorized'
+            : 'Helius API request failed';
+      return NextResponse.json(
+        { error: message, rateLimit },
+        { status }
+      );
+    }
     return NextResponse.json(
       { error: 'Failed to fetch transactions' },
       { status: 500 }

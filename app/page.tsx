@@ -6,7 +6,7 @@ import TokenInput from '@/components/TokenInput';
 import DateRangePicker from '@/components/DateRangePicker';
 import TransactionFeed from '@/components/TransactionFeed';
 import StatusBar from '@/components/StatusBar';
-import { Transaction, TokenMonitorConfig } from '@/types';
+import { RateLimitInfo, Transaction, TokenMonitorConfig } from '@/types';
 import { 
   TRANSACTION_TYPES, 
   UNIQUE_DEX_LIST, 
@@ -26,6 +26,7 @@ export default function Home() {
   const [config, setConfig] = useState<TokenMonitorConfig>({
     tokenAddress: '',
     mode: 'live',
+    heliusApiKey: '',
   });
   const [tokenInfo, setTokenInfo] = useState<TokenInfo | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -34,6 +35,9 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [rateLimit, setRateLimit] = useState<RateLimitInfo | null>(null);
+  const [hasStoredHeliusKey, setHasStoredHeliusKey] = useState(false);
 
   // Filter State
   const [selectedTypes, setSelectedTypes] = useState<Set<TransactionType>>(() => {
@@ -125,9 +129,78 @@ export default function Home() {
     if (savedAddress) {
       setConfig((prev) => ({ ...prev, tokenAddress: savedAddress }));
     }
+    localStorage.removeItem('heliusApiKey');
   }, []);
 
+  useEffect(() => {
+    const checkStoredKey = async () => {
+      try {
+        const response = await fetch('/api/helius-key', { method: 'GET' });
+        if (!response.ok) return;
+        const data = await response.json();
+        setHasStoredHeliusKey(Boolean(data?.hasKey));
+      } catch (e) {
+        // Ignore failures; we'll assume no stored key
+      }
+    };
+    checkStoredKey();
+  }, []);
+
+  const persistHeliusApiKey = async () => {
+    const trimmed = (config.heliusApiKey || '').trim();
+    if (!trimmed) {
+      // Do not delete unless user explicitly clears
+      return;
+    }
+    const response = await fetch('/api/helius-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey: trimmed }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to store Helius API key');
+    }
+    setHasStoredHeliusKey(true);
+  };
+
+  const toggleShowApiKey = async () => {
+    if (!showApiKey && !config.heliusApiKey && hasStoredHeliusKey) {
+      try {
+        const response = await fetch('/api/helius-key?reveal=1', { method: 'GET' });
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.apiKey) {
+            setConfig((prev) => ({ ...prev, heliusApiKey: data.apiKey }));
+          }
+        }
+      } catch (e) {
+        // Ignore, fall back to toggling visibility only
+      }
+    }
+    setShowApiKey((prev) => !prev);
+  };
+
+  const clearHeliusApiKey = async () => {
+    await fetch('/api/helius-key', { method: 'DELETE' });
+    setHasStoredHeliusKey(false);
+    setConfig((prev) => ({ ...prev, heliusApiKey: '' }));
+  };
+
   const startMonitoring = async () => {
+    const trimmedApiKey = (config.heliusApiKey || '').trim();
+    if (!config.tokenAddress || (!trimmedApiKey && !hasStoredHeliusKey)) {
+      const missingToken = !config.tokenAddress;
+      const missingKey = !trimmedApiKey && !hasStoredHeliusKey;
+      const message = [
+        missingToken ? 'Token address is required' : null,
+        missingKey ? 'Helius API key is required' : null,
+      ]
+        .filter(Boolean)
+        .join(' and ');
+      setError(message);
+      return;
+    }
+
     if (!validateSolanaAddress(config.tokenAddress)) {
       setError('Invalid token address');
       return;
@@ -152,12 +225,18 @@ export default function Home() {
     // setTokenInfo(null); 
 
     try {
+      await persistHeliusApiKey();
+
       // Fetch token info
       try {
         const infoResponse = await fetch(`/api/token-info?address=${config.tokenAddress}`);
         if (infoResponse.ok) {
           const info = await infoResponse.json();
+          if (info?.rateLimit) setRateLimit(info.rateLimit);
           setTokenInfo(info);
+        } else {
+          const info = await infoResponse.json().catch(() => null);
+          if (info?.rateLimit) setRateLimit(info.rateLimit);
         }
       } catch (e) {
         console.error('Failed to fetch token info', e);
@@ -173,9 +252,11 @@ export default function Home() {
           }),
         });
 
-        if (!response.ok) throw new Error('Failed to fetch transactions');
-
         const data = await response.json();
+        if (data?.rateLimit) setRateLimit(data.rateLimit);
+        if (!response.ok) {
+          throw new Error(data?.error || 'Failed to fetch transactions');
+        }
         const txs = data.transactions || [];
         setTransactions(txs);
         
@@ -193,14 +274,14 @@ export default function Home() {
         } else if (txs.length < 100) {
           setHasMore(false);
         }
+        setIsMonitoring(true);
       } else {
         // Connect to WebSocket only in live mode
         connectWebSocket();
       }
-
-      setIsMonitoring(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
+      setConnectionStatus('disconnected');
     } finally {
       setIsLoading(false);
     }
@@ -265,9 +346,9 @@ export default function Home() {
           }),
         });
   
-        if (!apiResponse.ok) throw new Error('Failed to fetch more transactions');
-  
         const data = await apiResponse.json();
+        if (data?.rateLimit) setRateLimit(data.rateLimit);
+        if (!apiResponse.ok) throw new Error(data?.error || 'Failed to fetch more transactions');
         const newTransactions = data.transactions || [];
         
         if (typeof data.rawCount === 'number') {
@@ -349,6 +430,7 @@ export default function Home() {
       }
     } catch (err) {
       console.error('Error loading more:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load more transactions');
     } finally {
       setIsLoadingMore(false);
     }
@@ -416,18 +498,32 @@ export default function Home() {
         });
       } else if (data.type === 'connected') {
         console.log(`✅ ${data.message} - ${data.tokenAddress}`);
+        setIsMonitoring(true);
       } else if (data.type === 'connecting') {
         console.log(`🔌 ${data.message}`);
       } else if (data.type === 'heartbeat') {
         // Heartbeat to keep connection alive (silent)
       } else if (data.type === 'error') {
         console.error('❌ Stream error:', data.message);
+        setError(data.message || 'Live stream error');
+        setConnectionStatus('disconnected');
+        // Stop monitoring on explicit server error (bad key, rate limit, etc.)
+        if (wsRef.current) {
+          wsRef.current.close();
+          wsRef.current = null;
+        }
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+          reconnectTimeoutRef.current = null;
+        }
+        setIsMonitoring(false);
       }
     };
 
     eventSource.onerror = (error) => {
       console.error('SSE error:', error);
       setConnectionStatus('reconnecting');
+      setError('Live stream disconnected. Reconnecting...');
       eventSource.close();
       
       // Only reconnect if we are supposed to be monitoring
@@ -515,15 +611,33 @@ export default function Home() {
 
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-terminal-panel border border-terminal-border text-xs font-medium text-terminal-muted transition-colors duration-300">
             <span className="relative flex h-2 w-2">
-              <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 transition-all duration-500 ${(connectionStatus === 'connected' || (isMonitoring && config.mode === 'all')) ? 'animate-ping bg-terminal-success' : 'bg-terminal-danger'}`}></span>
-              <span className={`relative inline-flex rounded-full h-2 w-2 transition-all duration-500 ${(connectionStatus === 'connected' || (isMonitoring && config.mode === 'all')) ? 'bg-terminal-success' : 'bg-terminal-danger'}`}></span>
+              <span
+                className={`absolute inline-flex h-full w-full rounded-full opacity-75 transition-all duration-500 ${
+                  (connectionStatus === 'connected' || (isMonitoring && config.mode === 'all'))
+                    ? 'animate-ping bg-terminal-success'
+                    : (config.tokenAddress && (config.heliusApiKey?.trim() || hasStoredHeliusKey))
+                      ? 'bg-terminal-warning'
+                      : 'bg-terminal-danger'
+                }`}
+              ></span>
+              <span
+                className={`relative inline-flex rounded-full h-2 w-2 transition-all duration-500 ${
+                  (connectionStatus === 'connected' || (isMonitoring && config.mode === 'all'))
+                    ? 'bg-terminal-success'
+                    : (config.tokenAddress && (config.heliusApiKey?.trim() || hasStoredHeliusKey))
+                      ? 'bg-terminal-warning'
+                      : 'bg-terminal-danger'
+                }`}
+              ></span>
             </span>
             <span className="transition-opacity duration-300">
               {connectionStatus === 'connected' 
                 ? 'System Online' 
                 : (isMonitoring && config.mode === 'all') 
                   ? 'System Online (historic mode)' 
-                  : 'System Offline'}
+                  : (config.tokenAddress && (config.heliusApiKey?.trim() || hasStoredHeliusKey))
+                    ? 'System ready to start'
+                    : 'System Offline'}
             </span>
           </div>
         </div>
@@ -574,6 +688,62 @@ export default function Home() {
                 }
                 disabled={isMonitoring}
               />
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-terminal-text/80 uppercase tracking-wider text-xs">
+                  Helius API Key (optional)
+                </label>
+                <div className="relative">
+                  <input
+                    type={showApiKey ? 'text' : 'password'}
+                    value={config.heliusApiKey || ''}
+                    onChange={(e) =>
+                      setConfig((prev) => ({ ...prev, heliusApiKey: e.target.value }))
+                    }
+                    disabled={isMonitoring}
+                    placeholder={hasStoredHeliusKey ? 'Key stored securely, click to change' : 'Paste your Helius key to override server env...'}
+                    className="terminal-input w-full py-3 bg-terminal-bg/50 focus:bg-terminal-bg transition-all border-terminal-border focus:border-terminal-success/50 focus:ring-1 focus:ring-terminal-success/50"
+                    autoComplete="off"
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs text-terminal-muted flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-terminal-muted" viewBox="0 0 448 512" fill="currentColor" aria-hidden="true">
+                      <path d="M400 192h-24v-72C376 53.7 322.3 0 256 0S136 53.7 136 120v72H112c-26.5 0-48 21.5-48 48v224c0 26.5 21.5 48 48 48h288c26.5 0 48-21.5 48-48V240c0-26.5-21.5-48-48-48zM184 120c0-39.7 32.3-72 72-72s72 32.3 72 72v72H184v-72z" />
+                    </svg>
+                    Stored securely in an HTTP-only cookie for 90 days.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={toggleShowApiKey}
+                    disabled={isMonitoring}
+                    className="terminal-button-secondary px-3 py-2 text-xs whitespace-nowrap flex items-center gap-2"
+                    title={showApiKey ? 'Hide API key' : 'Show API key'}
+                  >
+                    {showApiKey ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18M10.477 10.48a2 2 0 102.828 2.828M9.88 4.24A9.97 9.97 0 0112 4c5 0 9 5 9 8a8.96 8.96 0 01-1.564 4.676M6.228 6.228A8.964 8.964 0 003 12c0 3 4 8 9 8 1.424 0 2.78-.31 4.013-.86" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearHeliusApiKey}
+                    disabled={isMonitoring || !hasStoredHeliusKey}
+                    className="terminal-button-secondary px-3 py-2 text-xs whitespace-nowrap flex items-center gap-2"
+                    title="Clear stored API key"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7-3h8a1 1 0 011 1v2H7V5a1 1 0 011-1z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
 
               <DateRangePicker
                 mode={config.mode}
@@ -659,6 +829,7 @@ export default function Home() {
               isMonitoring={isMonitoring}
               tokenAddress={config.tokenAddress}
               stats={stats}
+              rateLimit={rateLimit}
             />
           </div>
         </div>

@@ -16,6 +16,15 @@ export interface Transaction {
 export interface TokenMonitorConfig {
   tokenAddress: string;
   mode: 'live' | 'all';
+  heliusApiKey?: string;
+}
+
+export interface RateLimitInfo {
+  limit?: number;
+  remaining?: number;
+  reset?: number;
+  resetMs?: number;
+  retryAfter?: number;
 }
 
 export interface HeliusTransaction {

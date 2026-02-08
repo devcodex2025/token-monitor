@@ -1,6 +1,7 @@
 'use client';
 
 import { shortenAddress } from '@/lib/utils';
+import { RateLimitInfo } from '@/types';
 
 interface StatusBarProps {
   isMonitoring: boolean;
@@ -13,9 +14,26 @@ interface StatusBarProps {
     sellVolumeSOL: number;
     totalVolumeSOL: number;
   };
+  rateLimit?: RateLimitInfo | null;
 }
 
-export default function StatusBar({ isMonitoring, tokenAddress, stats }: StatusBarProps) {
+const formatResetIn = (rateLimit?: RateLimitInfo | null) => {
+  if (!rateLimit) return '';
+  const resetMs = rateLimit.resetMs ?? (rateLimit.reset ? rateLimit.reset * 1000 : undefined);
+  if (!resetMs) return '';
+  const seconds = Math.max(0, Math.round((resetMs - Date.now()) / 1000));
+  if (!Number.isFinite(seconds)) return '';
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.round(seconds / 60);
+  return `${minutes}m`;
+};
+
+export default function StatusBar({ isMonitoring, tokenAddress, stats, rateLimit }: StatusBarProps) {
+  const resetIn = formatResetIn(rateLimit);
+  const remaining = rateLimit?.remaining;
+  const limit = rateLimit?.limit;
+  const showLimit = remaining !== undefined || limit !== undefined;
+
   return (
     <div className="p-4">
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -40,6 +58,18 @@ export default function StatusBar({ isMonitoring, tokenAddress, stats }: StatusB
             </div>
           )}
         </div>
+
+        {showLimit && (
+          <div className="text-sm text-terminal-muted">
+            Helius Limit:{' '}
+            <span className={remaining === 0 ? 'text-terminal-danger font-semibold' : 'text-terminal-text'}>
+              {remaining ?? '?'} / {limit ?? '?'}
+            </span>
+            {resetIn && (
+              <span className="text-terminal-muted"> · reset in {resetIn}</span>
+            )}
+          </div>
+        )}
 
         {/* Stats */}
         {stats.total > 0 && (

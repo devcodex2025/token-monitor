@@ -110,7 +110,7 @@ export default function TransactionFeed({
   }, [transactions.length]);
 
   if (transactions.length === 0) {
-    let message = 'Click "Start Monitoring" to display transactions';
+    let message = 'Enter a token address and Helius API key and click "Start Monitoring" to begin.';
     
     if (status === 'connecting') {
       message = 'Connecting...';
@@ -124,10 +124,8 @@ export default function TransactionFeed({
       <div className="terminal-panel p-8 text-center">
         <div className="text-terminal-muted">
           <div className="text-4xl mb-3">📊</div>
-          <p className="text-lg">Waiting for transactions...</p>
-          <p className="text-sm mt-2">
-            {message}
-          </p>
+          <p className="text-lg">Instant Solana activity, ready on start</p>
+          <p className="text-sm mt-2">{message}</p>
         </div>
       </div>
     );

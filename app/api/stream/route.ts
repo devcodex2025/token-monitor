@@ -1,11 +1,11 @@
 import { NextRequest } from 'next/server';
 import { TransactionParser } from '@/lib/transactionParser';
 import { WebSocketTransformer } from '@/lib/websocketTransformer';
+import { getHeliusApiKeyFromRequest } from '@/lib/heliusKey';
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
   const tokenAddress = searchParams.get('token');
-
   if (!tokenAddress) {
     return new Response('Token address required', { status: 400 });
   }
@@ -87,14 +87,15 @@ export async function GET(req: NextRequest) {
 
       // Create WebSocket connection for this client
       const connectHeliusWebSocket = () => {
-        if (!process.env.HELIUS_API_KEY) {
+        const apiKey = getHeliusApiKeyFromRequest(req) || process.env.HELIUS_API_KEY;
+        if (!apiKey) {
           console.error('❌ HELIUS_API_KEY is missing');
           sendEvent({ type: 'error', message: 'Server configuration error: Missing API Key' });
           cleanup();
           return;
         }
 
-        const wsUrl = `wss://atlas-mainnet.helius-rpc.com?api-key=${process.env.HELIUS_API_KEY}`;
+        const wsUrl = `wss://atlas-mainnet.helius-rpc.com?api-key=${apiKey}`;
         
         console.log(`🔌 Connecting to Helius WebSocket for ${tokenAddress.slice(0, 8)}...`);
         
@@ -157,12 +158,20 @@ export async function GET(req: NextRequest) {
 
         heliusWs.onerror = (error) => {
           console.error('WebSocket error:', error);
-          // Don't send error event to client immediately, let it reconnect or close
-          // But we can log it
+          sendEvent({
+            type: 'error',
+            message: 'Helius WebSocket error. Check API key or rate limits.',
+          });
         };
 
-        heliusWs.onclose = () => {
+        heliusWs.onclose = (event) => {
           console.log(`🔌 WebSocket disconnected for ${tokenAddress.slice(0, 8)}...`);
+          const reason = event?.reason ? ` (${event.reason})` : '';
+          sendEvent({
+            type: 'error',
+            message: `Helius WebSocket closed${reason}.`,
+            code: event?.code,
+          });
           // If upstream closes, we close the stream to trigger client reconnect
           cleanup();
         };

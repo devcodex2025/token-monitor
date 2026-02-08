@@ -50,6 +50,10 @@
     @apply terminal-button bg-terminal-success text-white hover:bg-terminal-success/80;
   }
 
+  .terminal-button-secondary {
+    @apply terminal-button bg-terminal-panel text-terminal-text border border-terminal-border hover:bg-terminal-bg;
+  }
+
   .animate-slide-in {
     animation: slideIn 0.3s ease-out forwards;
   }
