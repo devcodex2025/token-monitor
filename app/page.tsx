@@ -188,16 +188,8 @@ export default function Home() {
 
   const startMonitoring = async () => {
     const trimmedApiKey = (config.heliusApiKey || '').trim();
-    if (!config.tokenAddress || (!trimmedApiKey && !hasStoredHeliusKey)) {
-      const missingToken = !config.tokenAddress;
-      const missingKey = !trimmedApiKey && !hasStoredHeliusKey;
-      const message = [
-        missingToken ? 'Token address is required' : null,
-        missingKey ? 'Helius API key is required' : null,
-      ]
-        .filter(Boolean)
-        .join(' and ');
-      setError(message);
+    if (!config.tokenAddress) {
+      setError('Token address is required');
       return;
     }
 
@@ -240,6 +232,16 @@ export default function Home() {
         }
       } catch (e) {
         console.error('Failed to fetch token info', e);
+        if (e instanceof Response) {
+          const errorData = await e.json().catch(() => null);
+          if (errorData?.needsApiKey) {
+            setError('Server rate limit exceeded. Please provide your own Helius API key to continue.');
+          } else if (errorData?.error) {
+            setError(errorData.error);
+          }
+        } else if (e instanceof Error) {
+          setError(e.message);
+        }
       }
 
       // Fetch historical transactions if "all" mode
@@ -255,6 +257,9 @@ export default function Home() {
         const data = await response.json();
         if (data?.rateLimit) setRateLimit(data.rateLimit);
         if (!response.ok) {
+          if (data?.needsApiKey) {
+            throw new Error('Server rate limit exceeded. Please provide your own Helius API key to continue.');
+          }
           throw new Error(data?.error || 'Failed to fetch transactions');
         }
         const txs = data.transactions || [];
@@ -348,7 +353,12 @@ export default function Home() {
   
         const data = await apiResponse.json();
         if (data?.rateLimit) setRateLimit(data.rateLimit);
-        if (!apiResponse.ok) throw new Error(data?.error || 'Failed to fetch more transactions');
+        if (!apiResponse.ok) {
+          if (data?.needsApiKey) {
+            throw new Error('Server rate limit exceeded. Please provide your own Helius API key to continue.');
+          }
+          throw new Error(data?.error || 'Failed to fetch more transactions');
+        }
         const newTransactions = data.transactions || [];
         
         if (typeof data.rawCount === 'number') {
@@ -505,7 +515,11 @@ export default function Home() {
         // Heartbeat to keep connection alive (silent)
       } else if (data.type === 'error') {
         console.error('❌ Stream error:', data.message);
-        setError(data.message || 'Live stream error');
+        if (data.needsApiKey) {
+          setError('Server rate limit exceeded. Please provide your own Helius API key to continue.');
+        } else {
+          setError(data.message || 'Live stream error');
+        }
         setConnectionStatus('disconnected');
         // Stop monitoring on explicit server error (bad key, rate limit, etc.)
         if (wsRef.current) {
@@ -701,7 +715,7 @@ export default function Home() {
                       setConfig((prev) => ({ ...prev, heliusApiKey: e.target.value }))
                     }
                     disabled={isMonitoring}
-                    placeholder={hasStoredHeliusKey ? 'Key stored securely, click to change' : 'Paste your Helius key to override server env...'}
+                    placeholder={hasStoredHeliusKey ? 'Key stored securely, click to change' : 'Enter your Helius API key to use your own quota...'}
                     className="terminal-input w-full py-3 bg-terminal-bg/50 focus:bg-terminal-bg transition-all border-terminal-border focus:border-terminal-success/50 focus:ring-1 focus:ring-terminal-success/50"
                     autoComplete="off"
                   />

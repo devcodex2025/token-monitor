@@ -12,7 +12,11 @@ export async function GET(req: NextRequest) {
 
   const apiKey = getHeliusApiKeyFromRequest(req) || process.env.HELIUS_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    const usingUserKey = Boolean(getHeliusApiKeyFromRequest(req));
+    const message = usingUserKey 
+      ? 'Helius API key not configured' 
+      : 'Server rate limit exceeded. Please provide your own Helius API key to continue.';
+    return NextResponse.json({ error: message, needsApiKey: !usingUserKey }, { status: 500 });
   }
 
   try {
@@ -49,13 +53,20 @@ export async function GET(req: NextRequest) {
     if (axios.isAxiosError(error) && error.response) {
       const rateLimit = extractRateLimit(error.response.headers || {});
       const status = error.response.status || 500;
-      const message =
-        status === 429
-          ? 'Helius rate limit exceeded'
-          : status === 403
-            ? 'Helius API key is not authorized'
-            : 'Failed to fetch token info';
-      return NextResponse.json({ error: message, rateLimit }, { status });
+      const usingUserKey = Boolean(getHeliusApiKeyFromRequest(req));
+      
+      let message = 'Failed to fetch token info';
+      if (status === 429) {
+        message = usingUserKey 
+          ? 'Your Helius API rate limit exceeded. Please try again later.'
+          : 'Server rate limit exceeded. Please provide your own Helius API key to continue.';
+      } else if (status === 403) {
+        message = usingUserKey
+          ? 'Your Helius API key is not authorized'
+          : 'Server API key issue. Please provide your own Helius API key to continue.';
+      }
+      
+      return NextResponse.json({ error: message, rateLimit, needsApiKey: !usingUserKey && (status === 429 || status === 403) }, { status });
     }
     return NextResponse.json({ error: 'Failed to fetch token info' }, { status: 500 });
   }

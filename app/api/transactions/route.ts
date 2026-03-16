@@ -18,8 +18,12 @@ export async function POST(request: NextRequest) {
 
     const apiKey = getHeliusApiKeyFromRequest(request) || process.env.HELIUS_API_KEY;
     if (!apiKey) {
+      const usingUserKey = Boolean(getHeliusApiKeyFromRequest(request));
+      const message = usingUserKey 
+        ? 'Helius API key not configured' 
+        : 'Server rate limit exceeded. Please provide your own Helius API key to continue.';
       return NextResponse.json(
-        { error: 'Helius API key not configured' },
+        { error: message, needsApiKey: !usingUserKey },
         { status: 500 }
       );
     }
@@ -109,14 +113,21 @@ export async function POST(request: NextRequest) {
     if (axios.isAxiosError(error) && error.response) {
       const rateLimit = extractRateLimit(error.response.headers || {});
       const status = error.response.status || 500;
-      const message =
-        status === 429
-          ? 'Helius rate limit exceeded'
-          : status === 403
-            ? 'Helius API key is not authorized'
-            : 'Helius API request failed';
+      const usingUserKey = Boolean(getHeliusApiKeyFromRequest(request));
+      
+      let message = 'Helius API request failed';
+      if (status === 429) {
+        message = usingUserKey 
+          ? 'Your Helius API rate limit exceeded. Please try again later.'
+          : 'Server rate limit exceeded. Please provide your own Helius API key to continue.';
+      } else if (status === 403) {
+        message = usingUserKey
+          ? 'Your Helius API key is not authorized'
+          : 'Server API key issue. Please provide your own Helius API key to continue.';
+      }
+      
       return NextResponse.json(
-        { error: message, rateLimit },
+        { error: message, rateLimit, needsApiKey: !usingUserKey && (status === 429 || status === 403) },
         { status }
       );
     }

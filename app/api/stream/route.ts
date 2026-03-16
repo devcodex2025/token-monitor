@@ -87,20 +87,35 @@ export async function GET(req: NextRequest) {
 
       // Create WebSocket connection for this client
       const connectHeliusWebSocket = () => {
-        const apiKey = getHeliusApiKeyFromRequest(req) || process.env.HELIUS_API_KEY;
+        const userKey = getHeliusApiKeyFromRequest(req);
+        const serverKey = process.env.HELIUS_API_KEY;
+        const apiKey = userKey || serverKey;
+        
+        console.log('🔑 WebSocket API Key Debug:', {
+          hasUserKey: !!userKey,
+          hasServerKey: !!serverKey,
+          serverKeyLength: serverKey?.length,
+          apiKeyLength: apiKey?.length
+        });
+        
         if (!apiKey) {
-          console.error('❌ HELIUS_API_KEY is missing');
-          sendEvent({ type: 'error', message: 'Server configuration error: Missing API Key' });
+          const usingUserKey = Boolean(userKey);
+          const message = usingUserKey 
+            ? 'Server configuration error: Missing API Key' 
+            : 'Server rate limit exceeded. Please provide your own Helius API key to continue.';
+          sendEvent({ type: 'error', message, needsApiKey: !usingUserKey });
           cleanup();
           return;
         }
 
-        const wsUrl = `wss://atlas-mainnet.helius-rpc.com?api-key=${apiKey}`;
+        const wsUrl = `wss://mainnet.helius-rpc.com/?api-key=${apiKey}`;
         
         console.log(`🔌 Connecting to Helius WebSocket for ${tokenAddress.slice(0, 8)}...`);
+        console.log(`🔗 WebSocket URL: ${wsUrl.replace(apiKey, apiKey?.substring(0, 8) + '...')}`);
         
         try {
           heliusWs = new WebSocket(wsUrl);
+          console.log('✅ WebSocket object created successfully');
         } catch (e) {
           console.error('Failed to create WebSocket:', e);
           sendEvent({ type: 'error', message: 'Failed to create WebSocket connection' });
@@ -158,9 +173,19 @@ export async function GET(req: NextRequest) {
 
         heliusWs.onerror = (error) => {
           console.error('WebSocket error:', error);
+          const usingUserKey = Boolean(userKey);
+          let message = 'Helius WebSocket connection error';
+          
+          if (!usingUserKey && !serverKey) {
+            message = 'Server rate limit exceeded. Please provide your own Helius API key to continue.';
+          } else if (error instanceof ErrorEvent && error.message?.includes('403')) {
+            message = 'WebSocket not supported by current API plan. Please upgrade your Helius plan or use historical mode instead.';
+          }
+          
           sendEvent({
             type: 'error',
-            message: 'Helius WebSocket error. Check API key or rate limits.',
+            message,
+            needsApiKey: !usingUserKey && !serverKey
           });
         };
 
@@ -209,5 +234,5 @@ export async function GET(req: NextRequest) {
 }
 
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
