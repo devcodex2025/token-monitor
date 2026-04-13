@@ -16,7 +16,7 @@ A real-time transaction tracker for Solana tokens, powered by **Helius Webhooks*
   - 📟 **CLI Mode**: Lightweight terminal interface
 - **Data Source**: Powered by [Helius Webhooks](https://docs.helius.dev/webhooks-and-websockets/webhooks)
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Installation
 ```bash
@@ -58,7 +58,7 @@ npm run webhook delete <WEBHOOK_ID>
 
 Open your Vercel URL and start tracking transactions in real-time!
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Framework**: Next.js 14 (App Router)
 - **Language**: TypeScript
@@ -66,7 +66,7 @@ Open your Vercel URL and start tracking transactions in real-time!
 - **Real-time**: Server-Sent Events (SSE) + Helius Webhooks
 - **Integration**: @solana/web3.js, Helius API
 
-## 📊 Architecture
+## Architecture
 
 ```
 Solana → Helius → Webhook (50ms) → SSE → UI
