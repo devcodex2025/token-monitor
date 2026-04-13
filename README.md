@@ -87,19 +87,15 @@ The project has own token - [$TMR](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxs
 Token listed on [Bags.fm](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS)   
 Inside our app we using Helius technology
 
-<p style="display: flex; align-items: center; gap: 16px;">
-  <a href="https://bags.fm/...">
-    <img src="public/bags-logo_32px.png" height="32" />
-  </a>
-  
-  <a href="https://bags.fm/...">
-    <img src="public/pump-monitor-logo-opt_64x32.webp" height="32" />
-  </a>
-
-  <a href="https://helius.dev">
-    <img src="public/helius_logo.svg" height="32" />
-  </a>
-</p>
+<a href="https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS">
+  <img src="public/bags-logo_32px.png" height="32" style="margin-right: 16px;" />
+</a>
+<a href="https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS">
+  <img src="public/pump-monitor-logo-opt_64x32.webp" height="32" style="margin-right: 16px;" />
+</a>
+<a href="https://helius.dev">
+  <img src="public/helius_logo.svg" height="32" />
+</a>
 
 ## 💸 Currency Conversion
 
