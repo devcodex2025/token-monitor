@@ -87,13 +87,13 @@ The project has own token - [$TMR](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxs
 Token listed on [Bags.fm](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS)   
 Inside our app we using Helius technology
 
-<a href="https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS">
-  <img src="public/bags-logo_32px.png" height="32" style="margin-right: 48px; text-decoration: none;" />
+<a href="https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS" style="text-decoration: none;">
+  <img src="public/bags-logo_32px.png" height="32" style="margin-right: 48px;" />
 </a>
-<a href="https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS">
+<a href="https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS" style="text-decoration: none;">
   <img src="public/pump-monitor-logo-opt_64x32.webp" height="32" style="margin-right: 48px;" />
 </a>
-<a href="https://helius.dev">
+<a href="https://helius.dev" style="text-decoration: none;">
   <img src="public/helius_logo.svg" height="32" />
 </a>
 
