@@ -86,12 +86,12 @@ Solana → Helius → Webhook (50ms) → SSE → UI
 The project has own token - [$TMR](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS)  
 Token listed on [Bags.fm](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS)   
 Inside our app we using Helius technology
-
-
-
+  
+  
+  
 [![Bags.fm logo](public/bags-logo_32px.png)](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS)&nbsp;&nbsp;&nbsp;[![Token Monitor logo](public/pump-monitor-logo-opt_64x32.webp)](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS)&nbsp;&nbsp;&nbsp;[<img src="public/helius_logo.svg" height="32" />](https://helius.dev)
-
-
+  
+  
 ## 💸 Currency Conversion
 
 The monitor automatically converts **USDC** and **USDT** transactions to **SOL equivalents** for consistent volume tracking. Original amounts are displayed in parentheses for verification.
