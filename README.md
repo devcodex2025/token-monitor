@@ -4,6 +4,8 @@ A real-time transaction tracker for Solana tokens, powered by **Helius Webhooks*
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
+![Token Monitor preview](/public/Token_Monitor_preview.png "Token Monitor preview") 
+
 ## ⚡ Features
 
 - **Real-time Webhooks**: Instant transaction notifications with 50-150ms latency
