@@ -1,4 +1,4 @@
-# Pump.fun Token Monitor
+# Token Monitor ([$TMR](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS))
 
 A real-time transaction tracker for Solana tokens, powered by **Helius Webhooks**. Monitor buys, sells, and DEX activity with **zero latency** via instant push notifications.
 
