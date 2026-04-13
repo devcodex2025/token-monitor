@@ -4,7 +4,7 @@ A real-time transaction tracker for Solana tokens, powered by **Helius Webhooks*
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-![Token Monitor preview](/public/Token_Monitor_preview.png "Token Monitor preview") 
+![Token Monitor preview](/public/Token_Monitor_preview.png "Token Monitor preview"){width=720px height=auto} 
 
 ## ⚡ Features
 
@@ -83,9 +83,9 @@ Solana → Helius → Webhook (50ms) → SSE → UI
 
 ## 📚 Community and support
 
-The project has own token - [$TMR](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS) ![Token Monitor logo](/public/pump-monitor-logo-opt.webp)
+The project has own token - [$TMR](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS) ![Token Monitor logo](/public/pump-monitor-logo-opt.webp){width=32px height=auto} 
 Token listed on [Bags.fm](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS)
-![Bags.fm logo](public/bags-logo.png)
+![Bags.fm logo](public/bags-logo.png){width=720px height=auto} 
 
 ## � Currency Conversion
 
