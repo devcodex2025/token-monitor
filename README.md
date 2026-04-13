@@ -83,9 +83,10 @@ Solana → Helius → Webhook (50ms) → SSE → UI
 
 ## 📚 Community and support
 
-The project has own token - [$TMR](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS) ![Token Monitor logo](public/pump-monitor-logo-opt_64x32.webp)
+The project has own token - [$TMR](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS) 
+![Token Monitor logo](public/pump-monitor-logo-opt_64x32.webp)
 Token listed on [Bags.fm](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS)
-![Bags.fm logo](public/bags-logo_32px. png)
+![Bags.fm logo](public/bags-logo_32px.png)
 
 ## 💸 Currency Conversion
 
