@@ -81,12 +81,11 @@ Solana → Helius → Webhook (50ms) → SSE → UI
 
 **Read more**: [ARCHITECTURE.md](ARCHITECTURE.md)
 
-## 📚 Documentation
+## 📚 Community and support
 
-- [🚀 Quick Start Guide](QUICK_START.md) - 5-minute setup
-- [🏗️ Architecture](ARCHITECTURE.md) - System design
-- [🎯 Webhooks Setup](WEBHOOKS_SETUP.md) - Detailed webhook config
-- [📝 Changelog](CHANGELOG.md) - Version history
+The project has own token - [$TMR](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS) ![Token Monitor logo](/public/pump-monitor-logo-opt.webp)
+Token listed on [Bags.fm](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS)
+![Bags.fm logo](public/bags-logo.png)
 
 ## � Currency Conversion
 
