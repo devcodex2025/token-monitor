@@ -28,7 +28,7 @@ A real-time transaction tracker for Solana tokens, powered by **Helius Webhooks*
 
 ## 🎥 Introduction to Token Monitor web application
 
-<video src="/public/token-monitor-introduction.mp4" width="100%" controls autoplay loop muted>
+<video src="https://github.com/user-attachments/assets/bd51ed6c-223d-44bd-9038-f9a1b818582a" width="100%" controls autoplay loop muted>
   Your browser does not support the video tag.
 </video>
 
