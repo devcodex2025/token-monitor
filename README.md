@@ -2,8 +2,6 @@
 
 A real-time transaction tracker for Solana tokens, powered by **Helius Webhooks**. Monitor buys, sells, and DEX activity with **zero latency** via instant push notifications.  
 
-<div align="center">  
-  
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
@@ -15,7 +13,6 @@ A real-time transaction tracker for Solana tokens, powered by **Helius Webhooks*
 [![GitHub Stars](https://img.shields.io/github/stars/твійюзернейм/token-monitor?style=flat-square&logo=github)](https://github.com/твійюзернейм/token-monitor/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/твійюзернейм/token-monitor?style=flat-square&logo=github)](https://github.com/твійюзернейм/token-monitor/network/members)
 
-</div>
 ![Token Monitor preview](/public/Token_Monitor_preview.png "Token Monitor preview")
 
 ## ⚡ Features
