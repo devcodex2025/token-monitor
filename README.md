@@ -2,7 +2,16 @@
 
 A real-time transaction tracker for Solana tokens, powered by **Helius Webhooks**. Monitor buys, sells, and DEX activity with **zero latency** via instant push notifications.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=flat-square&logo=vercel&logoColor=white)](https://vercel.com/)
+[![Solana](https://img.shields.io/badge/Built%20on-Solana-9945FF?style=flat-square&logo=solana&logoColor=white)](https://solana.com/)
+[![Helius](https://img.shields.io/badge/Powered%20by-Helius-FF6B00?style=flat-square&logo=helius&logoColor=white)](https://helius.dev/)
+
+[![GitHub Stars](https://img.shields.io/github/stars/твійюзернейм/token-monitor?style=flat-square&logo=github)](https://github.com/твійюзернейм/token-monitor/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/твійюзернейм/token-monitor?style=flat-square&logo=github)](https://github.com/твійюзернейм/token-monitor/network/members)
 
 ![Token Monitor preview](/public/Token_Monitor_preview.png "Token Monitor preview")
 
