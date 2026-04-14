@@ -32,7 +32,7 @@ A real-time transaction tracker for Solana tokens, powered by **Helius Webhooks*
   Your browser does not support the video tag.
 </video>
 
-<p align="center"><strong>Introduction to Token Monitor web application</strong></p>
+<p align="center"><strong>Detailed intstructions how to work with application</strong></p>
 
 ## Quick Start
 
