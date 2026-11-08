@@ -4,6 +4,7 @@ import { toTxEvent } from './events'
 import { TransactionParser } from './transactionParser'
 
 export * from './events'
+export * from './infer'
 export { BagsParser } from './parsers/bags'
 export { DFlowParser } from './parsers/dflow'
 export { TransactionParser }
