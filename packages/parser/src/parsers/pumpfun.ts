@@ -1,6 +1,7 @@
 import type { HeliusTransaction, LegacyTransaction } from '../types'
-import bs58 from 'bs58'
+import { Buffer } from 'node:buffer'
 import { PublicKey } from '@solana/web3.js'
+import bs58 from 'bs58'
 import { BaseParser } from './base'
 
 export class PumpFunParser extends BaseParser {
@@ -50,14 +51,17 @@ export class PumpFunParser extends BaseParser {
       if (isFromCurve) {
         type = 'BUY'
         wallet = curveTransfer.toUserAccount
-      } else if (isToCurve) {
+      }
+      else if (isToCurve) {
         type = 'SELL'
         wallet = curveTransfer.fromUserAccount
-      } else {
+      }
+      else {
         if (curveTransfer.toUserAccount === transaction.feePayer) {
           type = 'BUY'
           wallet = curveTransfer.toUserAccount
-        } else {
+        }
+        else {
           type = 'SELL'
           wallet = curveTransfer.fromUserAccount
         }
@@ -83,14 +87,16 @@ export class PumpFunParser extends BaseParser {
                     if (source === wallet) {
                       solAmount += amount
                     }
-                  } else {
+                  }
+                  else {
                     if (dest === wallet) {
                       solAmount += amount
                     }
                   }
                 }
               }
-            } catch {
+            }
+            catch {
               // ignore malformed inner instruction
             }
           }
@@ -99,13 +105,15 @@ export class PumpFunParser extends BaseParser {
 
       if (solAmount > 0) {
         solAmount = solAmount / 1e9
-      } else if (transaction.nativeTransfers) {
+      }
+      else if (transaction.nativeTransfers) {
         for (const transfer of transaction.nativeTransfers) {
           if (type === 'BUY') {
             if (transfer.fromUserAccount === wallet && transfer.toUserAccount !== wallet) {
               solAmount += transfer.amount
             }
-          } else if (type === 'SELL') {
+          }
+          else if (type === 'SELL') {
             if (transfer.toUserAccount === wallet && transfer.fromUserAccount !== wallet) {
               solAmount += transfer.amount
             }
@@ -125,7 +133,8 @@ export class PumpFunParser extends BaseParser {
         'Pump.fun',
         solAmount,
       )
-    } catch {
+    }
+    catch {
       return null
     }
   }

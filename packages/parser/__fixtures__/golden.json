@@ -1,0 +1,272 @@
+[
+  {
+    "fixture": "helius-tx-5iyJkcQy.json",
+    "arrayIndex": -1,
+    "mint": "CSrwNk6B1DwWCHRMsaoDVUfD5bBMQCJPY72ZG3Nnpump",
+    "type": "BUY",
+    "dex": "Pump.fun",
+    "wallet": "8iTjomWRmsSUSqQWB9S1eRhgpq5PPLFhXrZpyVcui6Qs",
+    "solAmount": 0.00203928,
+    "tokenAmount": 225120.968622
+  },
+  {
+    "fixture": "helius-tx-XYLDGTfH.json",
+    "arrayIndex": -1,
+    "mint": "oppVJLf5VEevoDHLGuHdyhb5iiNM6tiRXUYuZ7ygqNA",
+    "type": "BUY",
+    "dex": "METEORA_DAMM_V2",
+    "wallet": "GS8DRKRbQqDxtUEGCcdmLEgoFvpNzirM16i1XjHcXwjY",
+    "solAmount": 0,
+    "tokenAmount": 48511.69697167
+  },
+  {
+    "fixture": "issue_claim_fees.json",
+    "arrayIndex": -1,
+    "mint": "CSrwNk6B1DwWCHRMsaoDVUfD5bBMQCJPY72ZG3Nnpump",
+    "type": "CLAIM_FEES",
+    "dex": "Meteora",
+    "wallet": "D8TEWMa6FbMR9F23dd89PkPiT8Rnb1BS91EvhKGpbwqe",
+    "solAmount": 0,
+    "tokenAmount": 0.585911
+  },
+  {
+    "fixture": "issue_onchainlabs.json",
+    "arrayIndex": -1,
+    "mint": "67ipDsgK6D7bqTW89H8T1KTxUvVuaFy92GX7Q2XFVdev",
+    "type": "SELL",
+    "dex": "Onchain Labs",
+    "wallet": "Apx1URLwFyS1L2kGgXxiR7qgweQ38TCbZuaZQPH9oL99",
+    "solAmount": 0.69405,
+    "tokenAmount": 7744039.703024
+  },
+  {
+    "fixture": "issue_onchainlabs_v2.json",
+    "arrayIndex": -1,
+    "mint": "67ipDsgK6D7bqTW89H8T1KTxUvVuaFy92GX7Q2XFVdev",
+    "type": "SELL",
+    "dex": "Onchain Labs",
+    "wallet": "Apx1URLwFyS1L2kGgXxiR7qgweQ38TCbZuaZQPH9oL99",
+    "solAmount": 0.69405,
+    "tokenAmount": 7744039.703024
+  },
+  {
+    "fixture": "issue_pump_instruction.json",
+    "arrayIndex": -1,
+    "mint": "67ipDsgK6D7bqTW89H8T1KTxUvVuaFy92GX7Q2XFVdev",
+    "type": "BUY",
+    "dex": "Pump.fun",
+    "wallet": "B3EqdGnLKDTWTPPEnAPMSekMLaz6a4aNgFXswHdTy3pc",
+    "solAmount": 0.253125,
+    "tokenAmount": 3472591.954148
+  },
+  {
+    "fixture": "issue_pump_mismatch.json",
+    "arrayIndex": -1,
+    "mint": "67ipDsgK6D7bqTW89H8T1KTxUvVuaFy92GX7Q2XFVdev",
+    "type": "BUY",
+    "dex": "Pump.fun",
+    "wallet": "B3EqdGnLKDTWTPPEnAPMSekMLaz6a4aNgFXswHdTy3pc",
+    "solAmount": 0.253125,
+    "tokenAmount": 3472591.954148
+  },
+  {
+    "fixture": "issue_rounded_sol.json",
+    "arrayIndex": -1,
+    "mint": "67ipDsgK6D7bqTW89H8T1KTxUvVuaFy92GX7Q2XFVdev",
+    "type": "BUY",
+    "dex": "Pump.fun",
+    "wallet": "B3EqdGnLKDTWTPPEnAPMSekMLaz6a4aNgFXswHdTy3pc",
+    "solAmount": 0.253125,
+    "tokenAmount": 3472591.954148
+  },
+  {
+    "fixture": "issue_swap.json",
+    "arrayIndex": -1,
+    "mint": "67ipDsgK6D7bqTW89H8T1KTxUvVuaFy92GX7Q2XFVdev",
+    "type": "SELL",
+    "dex": "Pump.fun",
+    "wallet": "7CACCrtBcfu2uEHgVhju5NSRscSKZoDjf6PDa63Z8WYC",
+    "solAmount": 0.451119466,
+    "tokenAmount": 6402879.902829
+  },
+  {
+    "fixture": "meteora-add-liquidity.json",
+    "arrayIndex": -1,
+    "mint": "CSrwNk6B1DwWCHRMsaoDVUfD5bBMQCJPY72ZG3Nnpump",
+    "type": "ADD_LIQUIDITY",
+    "dex": "Meteora",
+    "wallet": "HMT7Lq68yof7qY851XAdKH1hHVcXajBvpuQH1uCYHRed",
+    "solAmount": 0.459455555,
+    "tokenAmount": 0
+  },
+  {
+    "fixture": "meteora-remove-liquidity.json",
+    "arrayIndex": -1,
+    "mint": "CSrwNk6B1DwWCHRMsaoDVUfD5bBMQCJPY72ZG3Nnpump",
+    "type": "REMOVE_LIQUIDITY",
+    "dex": "Meteora",
+    "wallet": "HWggBjLKTvsfcpMkAoQ7jb2GYTApFgb3qReezwBGLiBN",
+    "solAmount": 0.002730195,
+    "tokenAmount": 21446.893535
+  },
+  {
+    "fixture": "meteora-swap.json",
+    "arrayIndex": -1,
+    "mint": "CSrwNk6B1DwWCHRMsaoDVUfD5bBMQCJPY72ZG3Nnpump",
+    "type": "SELL",
+    "dex": "METEORA DLMM",
+    "wallet": "2tiW5T1Sg77sE83yjXyWGarU7fBnEEiVZtUHcHvt4gW2",
+    "solAmount": 0.109792938,
+    "tokenAmount": 6367.594609
+  },
+  {
+    "fixture": "repro_missing_wallet.json",
+    "arrayIndex": 0,
+    "mint": "67ipDsgK6D7bqTW89H8T1KTxUvVuaFy92GX7Q2XFVdev",
+    "type": "SELL",
+    "dex": "Pump.fun",
+    "wallet": "8SPkcvLgU4LqxnY1fTTxGjcJwwovTCFeFUhpZmueqmZD",
+    "solAmount": 0.00203928,
+    "tokenAmount": 783738.240682
+  },
+  {
+    "fixture": "repro_okx_issue.json",
+    "arrayIndex": -1,
+    "mint": "67ipDsgK6D7bqTW89H8T1KTxUvVuaFy92GX7Q2XFVdev",
+    "type": "SELL",
+    "dex": "OKX DEX",
+    "wallet": "Apx1URLwFyS1L2kGgXxiR7qgweQ38TCbZuaZQPH9oL99",
+    "solAmount": 0.084707172,
+    "tokenAmount": 947665.586072
+  },
+  {
+    "fixture": "repro_pump_issue.json",
+    "arrayIndex": -1,
+    "mint": "67ipDsgK6D7bqTW89H8T1KTxUvVuaFy92GX7Q2XFVdev",
+    "type": "BUY",
+    "dex": "Pump.fun",
+    "wallet": "DaBPm5gSQJzkNiEnZQXkZ9dtr9df3UFWv7KGjUM5L32Y",
+    "solAmount": 0.6,
+    "tokenAmount": 6429924.824216
+  },
+  {
+    "fixture": "repro_pump_refactor.json",
+    "arrayIndex": -1,
+    "mint": "67ipDsgK6D7bqTW89H8T1KTxUvVuaFy92GX7Q2XFVdev",
+    "type": "BUY",
+    "dex": "Pump.fun",
+    "wallet": "Aey9tGV5PwXmcqGFEfaFgw5PEF36vi4kQkbQhrjQbDQb",
+    "solAmount": 0.9981556,
+    "tokenAmount": 8302488.006201
+  },
+  {
+    "fixture": "repro_pump_zero_sol_2.json",
+    "arrayIndex": -1,
+    "mint": "67ipDsgK6D7bqTW89H8T1KTxUvVuaFy92GX7Q2XFVdev",
+    "type": "BUY",
+    "dex": "Pump.fun",
+    "wallet": "Aey9tGV5PwXmcqGFEfaFgw5PEF36vi4kQkbQhrjQbDQb",
+    "solAmount": 0.9981556,
+    "tokenAmount": 8302488.006201
+  },
+  {
+    "fixture": "repro_wrong_direction.json",
+    "arrayIndex": -1,
+    "mint": "67ipDsgK6D7bqTW89H8T1KTxUvVuaFy92GX7Q2XFVdev",
+    "type": "BUY",
+    "dex": "Pump.fun",
+    "wallet": "D4ki5hVvjvuMmHyjX62rzzzkAfQycShwUKtQFouFbkCE",
+    "solAmount": 0.472049648,
+    "tokenAmount": 2949282
+  },
+  {
+    "fixture": "repro_zero_sol.json",
+    "arrayIndex": 0,
+    "mint": "67ipDsgK6D7bqTW89H8T1KTxUvVuaFy92GX7Q2XFVdev",
+    "type": "BUY",
+    "dex": "Pump.fun",
+    "wallet": "D3jUwjX5NXjMfHHhKddvpQyJS2YauiMFuyRTC7Kmzp8Q",
+    "solAmount": 0.086902602,
+    "tokenAmount": 617372.93552
+  },
+  {
+    "fixture": "test-add-liquidity.json",
+    "arrayIndex": 0,
+    "mint": "CSrwNk6B1DwWCHRMsaoDVUfD5bBMQCJPY72ZG3Nnpump",
+    "type": "ADD_LIQUIDITY",
+    "dex": "Meteora",
+    "wallet": "yoizzH6f2poviZYkTkMb2Hb8XKHzJiqB4YCATULGvyC",
+    "solAmount": 1.1594525230000001,
+    "tokenAmount": 0
+  },
+  {
+    "fixture": "test-claim-fees-real.json",
+    "arrayIndex": 0,
+    "mint": "CSrwNk6B1DwWCHRMsaoDVUfD5bBMQCJPY72ZG3Nnpump",
+    "type": "BUY",
+    "dex": "METEORA DLMM",
+    "wallet": "CSXvtkX8R25GsDVdZasPYuNyDSxtfYQR8SWNSdhY8AVN",
+    "solAmount": 0.099562326,
+    "tokenAmount": 5307.314349
+  },
+  {
+    "fixture": "test-claim-fees-tx.json",
+    "arrayIndex": 0,
+    "mint": "CSrwNk6B1DwWCHRMsaoDVUfD5bBMQCJPY72ZG3Nnpump",
+    "type": "BUY",
+    "dex": "METEORA DLMM",
+    "wallet": "33f1FFwaTQWQPhfhsNkhXMTyTemcu5vrXLf7LQzSfnqQ",
+    "solAmount": 0.007542885,
+    "tokenAmount": 398.627855
+  },
+  {
+    "fixture": "test-remove-claim-combo.json",
+    "arrayIndex": 0,
+    "mint": "CSrwNk6B1DwWCHRMsaoDVUfD5bBMQCJPY72ZG3Nnpump",
+    "type": "REMOVE_LIQUIDITY",
+    "dex": "Meteora",
+    "wallet": "DbmB9s6QUhp5tWaxf3M2HmEgNQtsHrJCNAq2Lrfafvt4",
+    "solAmount": 2.090020557,
+    "tokenAmount": 29.401997
+  },
+  {
+    "fixture": "test-remove-liq-real.json",
+    "arrayIndex": 0,
+    "mint": "CSrwNk6B1DwWCHRMsaoDVUfD5bBMQCJPY72ZG3Nnpump",
+    "type": "REMOVE_LIQUIDITY",
+    "dex": "Meteora",
+    "wallet": "DY1cSHtXJ7o4gxysW916Nvki3zgXtDJ3j5wvFQw22aVR",
+    "solAmount": 1.669487055,
+    "tokenAmount": 0
+  },
+  {
+    "fixture": "test-remove-liq.json",
+    "arrayIndex": 0,
+    "mint": "CSrwNk6B1DwWCHRMsaoDVUfD5bBMQCJPY72ZG3Nnpump",
+    "type": "REMOVE_LIQUIDITY",
+    "dex": "Meteora",
+    "wallet": "27jMqNMeWd67L6TfZieqr6xUTYsazNy1B98ZTjSPzBLS",
+    "solAmount": 4.002047297,
+    "tokenAmount": 0
+  },
+  {
+    "fixture": "test-transfer-tx.json",
+    "arrayIndex": 0,
+    "mint": "CSrwNk6B1DwWCHRMsaoDVUfD5bBMQCJPY72ZG3Nnpump",
+    "type": "TRANSFER",
+    "dex": "SOLANA_PROGRAM_LIBRARY",
+    "wallet": "7UhjbynicBP8rqcobwsAJDfRMjwgHSgdxcYNJmLwxfms",
+    "solAmount": 0,
+    "tokenAmount": 22394.22
+  },
+  {
+    "fixture": "transaction-example.json",
+    "arrayIndex": 0,
+    "mint": "14XEVKV9LJJFWc7epbdd1W9E1a1JivB2st8sx4nCboop",
+    "type": "SELL",
+    "dex": "OKX DEX",
+    "wallet": "kUMEKAPv1rd2TtnxsJrTvtZ6LDdjK7bmKFF8HzwYi95",
+    "solAmount": 0.006846102,
+    "tokenAmount": 232532.214144158
+  }
+]

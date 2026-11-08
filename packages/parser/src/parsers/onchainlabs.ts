@@ -27,7 +27,8 @@ export class OnchainLabsParser extends BaseParser {
     const { tokenTransfers, nativeTransfers, feePayer } = transaction
 
     const tokenTransfer = tokenTransfers?.find(t => t.mint === tokenMint)
-    if (!tokenTransfer) return null
+    if (!tokenTransfer)
+      return null
 
     let wallet = feePayer || ''
     let type: 'BUY' | 'SELL' = 'BUY'
@@ -35,10 +36,12 @@ export class OnchainLabsParser extends BaseParser {
     if (tokenTransfer.fromUserAccount === feePayer) {
       type = 'SELL'
       wallet = feePayer
-    } else if (tokenTransfer.toUserAccount === feePayer) {
+    }
+    else if (tokenTransfer.toUserAccount === feePayer) {
       type = 'BUY'
       wallet = feePayer
-    } else {
+    }
+    else {
       if (
         tokenTransfer.fromUserAccount
         && tokenTransfer.fromUserAccount !== OnchainLabsParser.PROGRAM_ID
@@ -46,7 +49,8 @@ export class OnchainLabsParser extends BaseParser {
       ) {
         wallet = tokenTransfer.fromUserAccount
         type = 'SELL'
-      } else if (
+      }
+      else if (
         tokenTransfer.toUserAccount
         && tokenTransfer.toUserAccount !== OnchainLabsParser.PROGRAM_ID
         && tokenTransfer.toUserAccount !== OnchainLabsParser.ROUTER_V1
@@ -66,13 +70,15 @@ export class OnchainLabsParser extends BaseParser {
           let amount = transfer.tokenAmount
           if (Number.isInteger(amount) && nativeAmounts.has(amount)) {
             amount = amount / 1e9
-          } else if (amount > 1_000_000_000) {
+          }
+          else if (amount > 1_000_000_000) {
             amount = amount / 1e9
           }
 
           if (type === 'BUY' && transfer.fromUserAccount === wallet) {
             solAmount += amount
-          } else if (type === 'SELL' && transfer.toUserAccount === wallet) {
+          }
+          else if (type === 'SELL' && transfer.toUserAccount === wallet) {
             solAmount += amount
           }
         }
@@ -84,7 +90,8 @@ export class OnchainLabsParser extends BaseParser {
             let amount = transfer.tokenAmount
             if (Number.isInteger(amount) && nativeAmounts.has(amount)) {
               amount = amount / 1e9
-            } else if (amount > 1_000_000_000) {
+            }
+            else if (amount > 1_000_000_000) {
               amount = amount / 1e9
             }
             if (amount > solAmount) {
@@ -108,7 +115,8 @@ export class OnchainLabsParser extends BaseParser {
       }
       if (type === 'BUY') {
         solAmount = sent / 1e9
-      } else {
+      }
+      else {
         solAmount = received / 1e9
       }
       if (solAmount === 0) {

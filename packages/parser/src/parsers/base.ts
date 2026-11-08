@@ -32,7 +32,8 @@ export abstract class BaseParser implements DexParser {
             if (transfer.fromUserAccount === wallet && transfer.toUserAccount !== wallet) {
               solAmount += transfer.amount
             }
-          } else if (type === 'SELL') {
+          }
+          else if (type === 'SELL') {
             if (transfer.toUserAccount === wallet && transfer.fromUserAccount !== wallet) {
               solAmount += transfer.amount
             }
@@ -78,7 +79,8 @@ export abstract class BaseParser implements DexParser {
           const change = userAccountData.nativeBalanceChange
           if (type === 'BUY' && change < 0) {
             solAmount = Math.abs(change) / 1e9
-          } else if (type === 'SELL' && change > 0) {
+          }
+          else if (type === 'SELL' && change > 0) {
             solAmount = change / 1e9
           }
         }

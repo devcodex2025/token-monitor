@@ -1,4 +1,5 @@
 import type { HeliusTransaction, LegacyTransaction } from '../types'
+import { Buffer } from 'node:buffer'
 import bs58 from 'bs58'
 import { BaseParser } from './base'
 
@@ -13,11 +14,13 @@ export class JupiterParser extends BaseParser {
   private decodeLimitOrderData(data: string): { makingAmount: bigint, takingAmount: bigint } | null {
     try {
       const buffer = Buffer.from(bs58.decode(data))
-      if (buffer.length < 32) return null
+      if (buffer.length < 32)
+        return null
       const makingAmount = buffer.readBigUInt64LE(16)
       const takingAmount = buffer.readBigUInt64LE(24)
       return { makingAmount, takingAmount }
-    } catch {
+    }
+    catch {
       return null
     }
   }
@@ -38,20 +41,23 @@ export class JupiterParser extends BaseParser {
         if (transfer.mint === WSOL_MINT) {
           if (type === 'SELL' && transfer.toUserAccount === wallet) {
             solAmount += transfer.tokenAmount
-          } else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
+          }
+          else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
             solAmount += transfer.tokenAmount
           }
         }
       }
     }
-    if (solAmount > 0) score = 3
+    if (solAmount > 0)
+      score = 3
 
     if (nativeTransfers) {
       let nativeAmount = 0
       for (const transfer of nativeTransfers) {
         if (type === 'SELL' && transfer.toUserAccount === wallet) {
           nativeAmount += transfer.amount
-        } else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
+        }
+        else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
           nativeAmount += transfer.amount
         }
       }
@@ -85,7 +91,8 @@ export class JupiterParser extends BaseParser {
                       solAmount += amount / 1e9
                       score = 3
                     }
-                  } else {
+                  }
+                  else {
                     if (dest === wallet) {
                       solAmount += amount / 1e9
                       score = 3
@@ -93,7 +100,8 @@ export class JupiterParser extends BaseParser {
                   }
                 }
               }
-            } catch {
+            }
+            catch {
               // ignore
             }
           }
@@ -103,13 +111,16 @@ export class JupiterParser extends BaseParser {
 
     if (score === 0 && tokenTransfers) {
       for (const transfer of tokenTransfers) {
-        if (transfer.mint === tokenMint) continue
-        if (transfer.mint === WSOL_MINT) continue
+        if (transfer.mint === tokenMint)
+          continue
+        if (transfer.mint === WSOL_MINT)
+          continue
 
         let amount = 0
         if (type === 'SELL' && transfer.toUserAccount === wallet) {
           amount = transfer.tokenAmount
-        } else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
+        }
+        else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
           amount = transfer.tokenAmount
         }
 
@@ -118,10 +129,12 @@ export class JupiterParser extends BaseParser {
           if (transfer.mint === USDC_MINT) {
             displayToken = 'USDC'
             score = 2
-          } else if (transfer.mint === USDT_MINT) {
+          }
+          else if (transfer.mint === USDT_MINT) {
             displayToken = 'USDT'
             score = 2
-          } else {
+          }
+          else {
             displayToken = 'UNKNOWN'
             score = 1
           }
@@ -157,12 +170,14 @@ export class JupiterParser extends BaseParser {
       if (accountChanges.length > 0) {
         relevantTransfers = accountChanges.flatMap((ad) => {
           const change = ad.tokenBalanceChanges!.find(tbc => tbc.mint === tokenMint)!
-          if (!change.rawTokenAmount) return []
+          if (!change.rawTokenAmount)
+            return []
 
           const rawAmount = change.rawTokenAmount
           const amount = Number.parseFloat(rawAmount.tokenAmount) / 10 ** rawAmount.decimals
 
-          if (amount === 0) return []
+          if (amount === 0)
+            return []
 
           if (amount < 0) {
             return [{
@@ -172,7 +187,8 @@ export class JupiterParser extends BaseParser {
               mint: tokenMint,
               tokenStandard: 'Fungible',
             }]
-          } else {
+          }
+          else {
             return [{
               fromUserAccount: '',
               toUserAccount: change.userAccount || ad.account,
@@ -185,7 +201,8 @@ export class JupiterParser extends BaseParser {
       }
     }
 
-    if (relevantTransfers.length === 0) return null
+    if (relevantTransfers.length === 0)
+      return null
 
     let wallet = feePayer || ''
     let type: 'BUY' | 'SELL' | 'TRANSFER' = 'BUY'
@@ -267,8 +284,10 @@ export class JupiterParser extends BaseParser {
     }[] = []
     const wallets = new Set<string>()
     relevantTransfers.forEach((t) => {
-      if (t.toUserAccount) wallets.add(t.toUserAccount)
-      if (t.fromUserAccount) wallets.add(t.fromUserAccount)
+      if (t.toUserAccount)
+        wallets.add(t.toUserAccount)
+      if (t.fromUserAccount)
+        wallets.add(t.fromUserAccount)
     })
 
     for (const candidateWallet of wallets) {
@@ -288,12 +307,18 @@ export class JupiterParser extends BaseParser {
     }
 
     candidates.sort((a, b) => {
-      if (a.score !== b.score) return b.score - a.score
-      if (Math.abs(a.solAmount - b.solAmount) > 1e-9) return b.solAmount - a.solAmount
-      if (a.type === 'BUY' && b.type === 'SELL') return -1
-      if (a.type === 'SELL' && b.type === 'BUY') return 1
-      if (a.wallet === feePayer) return -1
-      if (b.wallet === feePayer) return 1
+      if (a.score !== b.score)
+        return b.score - a.score
+      if (Math.abs(a.solAmount - b.solAmount) > 1e-9)
+        return b.solAmount - a.solAmount
+      if (a.type === 'BUY' && b.type === 'SELL')
+        return -1
+      if (a.type === 'SELL' && b.type === 'BUY')
+        return 1
+      if (a.wallet === feePayer)
+        return -1
+      if (b.wallet === feePayer)
+        return 1
       return 0
     })
 
@@ -304,7 +329,8 @@ export class JupiterParser extends BaseParser {
       tokenAmount = best.tokenAmount
       solAmount = best.solAmount
       displayToken = best.displayToken
-    } else {
+    }
+    else {
       wallet = feePayer
     }
 

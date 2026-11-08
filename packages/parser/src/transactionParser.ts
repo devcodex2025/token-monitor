@@ -27,7 +27,8 @@ export class TransactionParser {
     for (const parser of this.parsers) {
       if (parser.canParse(heliusTx)) {
         const result = parser.parse(heliusTx, tokenMint)
-        if (result) return result
+        if (result)
+          return result
       }
     }
 
@@ -68,19 +69,24 @@ export class TransactionParser {
         = type === 'TRANSFER' || type === 'transfer' || source === 'SYSTEM_PROGRAM' || source === 'SOLANA_PROGRAM_LIBRARY'
 
       const hasTokenTransfer = tokenTransfers?.some(t => t.mint === tokenMint)
-      if (!hasTokenTransfer) return null
+      if (!hasTokenTransfer)
+        return null
 
       const isLikelyTransfer = isSimpleTransfer || (type === 'UNKNOWN' && source === 'UNKNOWN')
-      if (!tokenTransfers || tokenTransfers.length === 0) return null
+      if (!tokenTransfers || tokenTransfers.length === 0)
+        return null
 
       const tokenTransfer = tokenTransfers.find(transfer => transfer.mint === tokenMint)
-      if (!tokenTransfer) return null
+      if (!tokenTransfer)
+        return null
 
       let toAccount = tokenTransfer.toUserAccount
       let fromAccount = tokenTransfer.fromUserAccount
 
-      if (!toAccount || toAccount === '') toAccount = feePayer || ''
-      if (!fromAccount || fromAccount === '') fromAccount = feePayer || ''
+      if (!toAccount || toAccount === '')
+        toAccount = feePayer || ''
+      if (!fromAccount || fromAccount === '')
+        fromAccount = feePayer || ''
 
       let isBuy: boolean
       let actualWallet: string
@@ -88,26 +94,32 @@ export class TransactionParser {
       if (feePayer && feePayer === toAccount) {
         isBuy = true
         actualWallet = toAccount
-      } else if (feePayer && feePayer === fromAccount) {
+      }
+      else if (feePayer && feePayer === fromAccount) {
         isBuy = false
         actualWallet = fromAccount
-      } else {
+      }
+      else {
         const isToUser = this.isUserAccount(toAccount)
         const isFromUser = this.isUserAccount(fromAccount)
 
         if (isToUser && !isFromUser) {
           isBuy = true
           actualWallet = toAccount
-        } else if (isFromUser && !isToUser) {
+        }
+        else if (isFromUser && !isToUser) {
           isBuy = false
           actualWallet = fromAccount
-        } else if (feePayer === toAccount) {
+        }
+        else if (feePayer === toAccount) {
           isBuy = true
           actualWallet = feePayer
-        } else if (feePayer === fromAccount) {
+        }
+        else if (feePayer === fromAccount) {
           isBuy = false
           actualWallet = feePayer
-        } else {
+        }
+        else {
           isBuy = true
           actualWallet = toAccount
         }
@@ -121,16 +133,20 @@ export class TransactionParser {
 
       if (tokenTransfers && tokenTransfers.length > 0) {
         for (const transfer of tokenTransfers) {
-          if (transfer.mint === tokenMint) continue
+          if (transfer.mint === tokenMint)
+            continue
 
           const isRelevant
             = (isBuy && transfer.fromUserAccount === actualWallet)
               || (!isBuy && transfer.toUserAccount === actualWallet)
 
           if (isRelevant) {
-            if (transfer.mint === USDC_MINT) usdcAmount += transfer.tokenAmount
-            else if (transfer.mint === USDT_MINT) usdtAmount += transfer.tokenAmount
-            else if (transfer.mint === WSOL_MINT) wsolAmount += transfer.tokenAmount
+            if (transfer.mint === USDC_MINT)
+              usdcAmount += transfer.tokenAmount
+            else if (transfer.mint === USDT_MINT)
+              usdtAmount += transfer.tokenAmount
+            else if (transfer.mint === WSOL_MINT)
+              wsolAmount += transfer.tokenAmount
           }
         }
 
@@ -146,10 +162,12 @@ export class TransactionParser {
       if (wsolAmount > 0) {
         solAmount = wsolAmount
         displayToken = 'SOL'
-      } else if (usdcAmount > 0) {
+      }
+      else if (usdcAmount > 0) {
         solAmount = usdcAmount
         displayToken = 'USDC'
-      } else if (usdtAmount > 0) {
+      }
+      else if (usdtAmount > 0) {
         solAmount = usdtAmount
         displayToken = 'USDT'
       }
@@ -158,9 +176,12 @@ export class TransactionParser {
         let totalNative = 0
         for (const transfer of nativeTransfers) {
           if (isBuy) {
-            if (transfer.fromUserAccount === actualWallet) totalNative += transfer.amount
-          } else {
-            if (transfer.toUserAccount === actualWallet) totalNative += transfer.amount
+            if (transfer.fromUserAccount === actualWallet)
+              totalNative += transfer.amount
+          }
+          else {
+            if (transfer.toUserAccount === actualWallet)
+              totalNative += transfer.amount
           }
         }
         solAmount = totalNative / 1e9
@@ -210,7 +231,8 @@ export class TransactionParser {
         dex,
         walletBalance: heliusTx.accountBalances?.[actualWallet],
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Error parsing generic transaction:', error)
       return null
     }

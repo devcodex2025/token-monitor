@@ -1,4 +1,5 @@
 import type { HeliusInstruction, HeliusTransaction, LegacyTransaction } from '../types'
+import { Buffer } from 'node:buffer'
 import bs58 from 'bs58'
 import { BaseParser } from './base'
 
@@ -32,7 +33,8 @@ export class MeteoraParser extends BaseParser {
     const meteoraInstructions = allInstructions.filter(ix => ix.programId === MeteoraParser.METEORA_DLMM)
 
     for (const ix of meteoraInstructions) {
-      if (!ix.data) continue
+      if (!ix.data)
+        continue
 
       if (
         ix.data.startsWith(MeteoraParser.DISCRIMINATORS.ADD_LIQUIDITY)
@@ -51,7 +53,8 @@ export class MeteoraParser extends BaseParser {
         ) {
           return this.parseAddLiquidity(transaction, tokenMint, feePayer)
         }
-      } catch {
+      }
+      catch {
         // ignore decode errors
       }
 
@@ -106,7 +109,8 @@ export class MeteoraParser extends BaseParser {
           if (transfer.toUserAccount === targetWallet) {
             if (transfer.mint === WSOL_MINT) {
               sol += transfer.tokenAmount
-            } else if (transfer.mint === tokenMint) {
+            }
+            else if (transfer.mint === tokenMint) {
               token += transfer.tokenAmount
             }
           }
@@ -206,7 +210,8 @@ export class MeteoraParser extends BaseParser {
       if (isUserReceiving) {
         if (transfer.mint === WSOL_MINT) {
           wsolTransfersToUser.push(transfer.tokenAmount)
-        } else if (transfer.mint === tokenMint) {
+        }
+        else if (transfer.mint === tokenMint) {
           tokenAmount += transfer.tokenAmount
         }
       }
@@ -218,13 +223,15 @@ export class MeteoraParser extends BaseParser {
     const usedIndices = new Set<number>()
 
     for (let i = 0; i < wsolTransfersToUser.length; i++) {
-      if (usedIndices.has(i)) continue
+      if (usedIndices.has(i))
+        continue
 
       const current = wsolTransfersToUser[i]!
       let isDuplicate = false
 
       for (let j = i + 1; j < wsolTransfersToUser.length; j++) {
-        if (usedIndices.has(j)) continue
+        if (usedIndices.has(j))
+          continue
         const next = wsolTransfersToUser[j]!
         if (Math.abs(next - current) < 0.003) {
           uniqueAmounts.push(next)
@@ -243,7 +250,8 @@ export class MeteoraParser extends BaseParser {
       uniqueAmounts.sort((a, b) => a - b)
       claimFeesAmount = uniqueAmounts[0]!
       solAmount = uniqueAmounts.slice(1).reduce((sum, amt) => sum + amt, 0)
-    } else {
+    }
+    else {
       solAmount = uniqueAmounts[0] || 0
     }
 
@@ -264,7 +272,8 @@ export class MeteoraParser extends BaseParser {
                 const decimals = balanceChange.rawTokenAmount.decimals || 6
                 tokenAmount += rawAmount / 10 ** decimals
               }
-            } else if (balanceChange.mint === WSOL_MINT && balanceChange.rawTokenAmount && solAmount === 0) {
+            }
+            else if (balanceChange.mint === WSOL_MINT && balanceChange.rawTokenAmount && solAmount === 0) {
               const rawAmount = Number.parseFloat(balanceChange.rawTokenAmount.tokenAmount)
               if (rawAmount > 0) {
                 const decimals = balanceChange.rawTokenAmount.decimals || 9

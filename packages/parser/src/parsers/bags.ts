@@ -1,4 +1,5 @@
 import type { HeliusInstruction, HeliusTransaction, LegacyTransaction } from '../types'
+import { Buffer } from 'node:buffer'
 import bs58 from 'bs58'
 import { BaseParser } from './base'
 
@@ -21,14 +22,16 @@ export class BagsParser extends BaseParser {
     const bagsInstructions = allInstructions.filter(ix => ix.programId === BagsParser.BAGS_PROGRAM)
 
     for (const ix of bagsInstructions) {
-      if (!ix.data) continue
+      if (!ix.data)
+        continue
       try {
         const buffer = Buffer.from(bs58.decode(ix.data))
         const discriminator = buffer.slice(0, 8).toString('hex')
         if (discriminator === BagsParser.HEX_DISCRIMINATORS.CREATE_POOL) {
           return this.parseCreatePool(transaction, tokenMint, feePayer)
         }
-      } catch {
+      }
+      catch {
         // ignore decode errors
       }
     }

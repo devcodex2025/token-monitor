@@ -23,7 +23,8 @@ export class OKXParser extends BaseParser {
     const { tokenTransfers, nativeTransfers, feePayer } = transaction
 
     const tokenTransfer = tokenTransfers?.find(t => t.mint === tokenMint)
-    if (!tokenTransfer) return null
+    if (!tokenTransfer)
+      return null
 
     let wallet = feePayer || ''
     let type: 'BUY' | 'SELL' = 'BUY'
@@ -40,24 +41,31 @@ export class OKXParser extends BaseParser {
     if (tokenTransfer.fromUserAccount && !isRouter(tokenTransfer.fromUserAccount)) {
       type = 'SELL'
       wallet = tokenTransfer.fromUserAccount
-    } else if (tokenTransfer.toUserAccount && !isRouter(tokenTransfer.toUserAccount)) {
+    }
+    else if (tokenTransfer.toUserAccount && !isRouter(tokenTransfer.toUserAccount)) {
       type = 'BUY'
       wallet = tokenTransfer.toUserAccount
-    } else {
+    }
+    else {
       if (!isRouter(feePayer)) {
         wallet = feePayer
-        if (tokenTransfer.fromUserAccount === wallet) type = 'SELL'
-        else if (tokenTransfer.toUserAccount === wallet) type = 'BUY'
-      } else if (nativeTransfers) {
+        if (tokenTransfer.fromUserAccount === wallet)
+          type = 'SELL'
+        else if (tokenTransfer.toUserAccount === wallet)
+          type = 'BUY'
+      }
+      else if (nativeTransfers) {
         const userTransfer = nativeTransfers.find(t => !isRouter(t.toUserAccount) && !isRouter(t.fromUserAccount))
         if (userTransfer) {
           wallet = userTransfer.toUserAccount
-        } else {
+        }
+        else {
           const fromRouter = nativeTransfers.find(t => isRouter(t.fromUserAccount) && !isRouter(t.toUserAccount))
           if (fromRouter) {
             wallet = fromRouter.toUserAccount
             type = 'SELL'
-          } else {
+          }
+          else {
             const toRouter = nativeTransfers.find(t => !isRouter(t.fromUserAccount) && isRouter(t.toUserAccount))
             if (toRouter) {
               wallet = toRouter.fromUserAccount
@@ -75,7 +83,8 @@ export class OKXParser extends BaseParser {
         if (transfer.mint === WSOL_MINT) {
           if (type === 'SELL' && transfer.toUserAccount === wallet) {
             solAmount += transfer.tokenAmount
-          } else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
+          }
+          else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
             solAmount += transfer.tokenAmount
           }
         }
@@ -89,7 +98,8 @@ export class OKXParser extends BaseParser {
           if (transfer.toUserAccount === wallet) {
             nativeAmount += transfer.amount
           }
-        } else if (type === 'BUY') {
+        }
+        else if (type === 'BUY') {
           if (transfer.fromUserAccount === wallet) {
             nativeAmount += transfer.amount
           }
@@ -103,17 +113,20 @@ export class OKXParser extends BaseParser {
 
     if (solAmount === 0 && tokenTransfers) {
       const routerWSOL = tokenTransfers.find((t) => {
-        if (t.mint !== WSOL_MINT) return false
+        if (t.mint !== WSOL_MINT)
+          return false
         if (type === 'BUY') {
           return isRouter(t.toUserAccount)
-        } else {
+        }
+        else {
           return isRouter(t.fromUserAccount)
         }
       })
 
       if (routerWSOL) {
         solAmount = routerWSOL.tokenAmount
-      } else {
+      }
+      else {
         const anyRouterWSOL = tokenTransfers.find(
           t => t.mint === WSOL_MINT && (isRouter(t.fromUserAccount) || isRouter(t.toUserAccount)),
         )

@@ -17,7 +17,8 @@ export class DFlowParser extends BaseParser {
     const { tokenTransfers, nativeTransfers, feePayer } = transaction
 
     const tokenTransfer = tokenTransfers?.find(t => t.mint === tokenMint)
-    if (!tokenTransfer) return null
+    if (!tokenTransfer)
+      return null
 
     let wallet = feePayer || ''
     let type: 'BUY' | 'SELL' = 'BUY'
@@ -25,7 +26,8 @@ export class DFlowParser extends BaseParser {
     if (tokenTransfer.fromUserAccount === feePayer) {
       type = 'SELL'
       wallet = feePayer
-    } else if (tokenTransfer.toUserAccount === feePayer) {
+    }
+    else if (tokenTransfer.toUserAccount === feePayer) {
       type = 'BUY'
       wallet = feePayer
     }
@@ -53,7 +55,8 @@ export class DFlowParser extends BaseParser {
         if (transfer.mint === WSOL_MINT) {
           if (type === 'SELL' && transfer.toUserAccount === wallet) {
             wsolAmount += transfer.tokenAmount
-          } else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
+          }
+          else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
             wsolAmount += transfer.tokenAmount
           }
         }
@@ -62,12 +65,14 @@ export class DFlowParser extends BaseParser {
 
     if (wsolAmount > 0) {
       solAmount = wsolAmount
-    } else if (solAmount === 0 && tokenTransfers) {
+    }
+    else if (solAmount === 0 && tokenTransfers) {
       for (const transfer of tokenTransfers) {
         if (transfer.mint === WSOL_MINT) {
           if (type === 'SELL' && transfer.toUserAccount === wallet) {
             solAmount += transfer.tokenAmount
-          } else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
+          }
+          else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
             solAmount += transfer.tokenAmount
           }
         }
@@ -84,13 +89,16 @@ export class DFlowParser extends BaseParser {
         if (transfer.mint === USDC_MINT) {
           if (type === 'SELL' && transfer.toUserAccount === wallet) {
             totalUsdc += transfer.tokenAmount
-          } else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
+          }
+          else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
             totalUsdc += transfer.tokenAmount
           }
-        } else if (transfer.mint === USDT_MINT) {
+        }
+        else if (transfer.mint === USDT_MINT) {
           if (type === 'SELL' && transfer.toUserAccount === wallet) {
             totalUsdt += transfer.tokenAmount
-          } else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
+          }
+          else if (type === 'BUY' && transfer.fromUserAccount === wallet) {
             totalUsdt += transfer.tokenAmount
           }
         }
@@ -99,7 +107,8 @@ export class DFlowParser extends BaseParser {
       if (totalUsdc > 0) {
         solAmount = totalUsdc
         displayToken = 'USDC'
-      } else if (totalUsdt > 0) {
+      }
+      else if (totalUsdt > 0) {
         solAmount = totalUsdt
         displayToken = 'USDT'
       }
