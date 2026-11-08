@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",
+    "@solana/web3.js": "^1.95.8",
     "@tmr/config": "workspace:*",
     "@tmr/db": "workspace:*",
     "@tmr/parser": "workspace:*",
