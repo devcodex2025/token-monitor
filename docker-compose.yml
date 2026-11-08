@@ -1,0 +1,41 @@
+version: '3.9'
+
+# PRD §8 / M0.5 — local dev services (postgres + redis).
+# Neon is used in production; this container mirrors the schema contract locally.
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: tmr-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tmr
+      POSTGRES_PASSWORD: tmr
+      POSTGRES_DB: tmr
+    ports:
+      - '5432:5432'
+    volumes:
+      - tmr-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U tmr -d tmr']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: tmr-redis
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '6379:6379'
+    volumes:
+      - tmr-redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  tmr-pgdata:
+  tmr-redisdata:
