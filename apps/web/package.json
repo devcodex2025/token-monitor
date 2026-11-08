@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@solana/web3.js": "^1.87.6",
+    "@tmr/analytics": "workspace:*",
     "@tmr/parser": "workspace:*",
     "axios": "^1.6.2",
     "date-fns": "^2.30.0",

@@ -54,6 +54,9 @@ importers:
       '@solana/web3.js':
         specifier: ^1.87.6
         version: 1.99.0(bufferutil@4.2.0)(typescript@5.9.3)(utf-8-validate@6.0.6)
+      '@tmr/analytics':
+        specifier: workspace:*
+        version: link:../../packages/analytics
       '@tmr/parser':
         specifier: workspace:*
         version: link:../../packages/parser
@@ -149,6 +152,19 @@ importers:
       typescript:
         specifier: ^5.7.2
         version: 5.9.3
+
+  packages/analytics:
+    dependencies:
+      '@tmr/parser':
+        specifier: workspace:*
+        version: link:../parser
+    devDependencies:
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.5)
 
   packages/auth:
     dependencies:
@@ -5699,7 +5715,7 @@ snapshots:
 
   isexe@3.1.5: {}
 
-  isomorphic-ws@4.0.1(ws@7.5.13(bufferutil@4.2.0)(utf-8-validate@6.0.6)):
+  isomorphic-ws@4.0.1(ws@7.5.13(bufferutil@4.2.0)):
     dependencies:
       ws: 7.5.13(bufferutil@4.2.0)(utf-8-validate@6.0.6)
 
@@ -5712,7 +5728,7 @@ snapshots:
       delay: 5.0.0
       es6-promisify: 5.0.0
       eyes: 0.1.8
-      isomorphic-ws: 4.0.1(ws@7.5.13(bufferutil@4.2.0)(utf-8-validate@6.0.6))
+      isomorphic-ws: 4.0.1(ws@7.5.13(bufferutil@4.2.0))
       json-stringify-safe: 5.0.1
       stream-json: 1.9.1
       uuid: 8.3.2

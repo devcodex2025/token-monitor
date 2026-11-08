@@ -2,7 +2,7 @@
 const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
-  transpilePackages: ['@tmr/parser'],
+  transpilePackages: ['@tmr/parser', '@tmr/analytics'],
   images: {
     domains: [
       'ipfs.io', 
