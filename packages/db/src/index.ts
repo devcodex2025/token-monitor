@@ -1,4 +1,15 @@
+import { drizzle } from 'drizzle-orm/node-postgres'
+import { Pool } from 'pg'
+import * as schema from './schema'
+
+export * as schema from './schema'
+export type Database = ReturnType<typeof createDatabase>
+
 /**
- * Database package (PRD §5 / FR-A2). Drizzle schema lands in M0.3; scaffolded in M0.1.
+ * Creates a Drizzle client over a node-postgres pool.
  */
-export const DB_PACKAGE_VERSION = '0.1.0'
+export function createDatabase(connectionString: string) {
+  const pool = new Pool({ connectionString })
+  const db = drizzle(pool, { schema })
+  return { db, pool }
+}
