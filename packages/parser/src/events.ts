@@ -15,6 +15,7 @@ const LEGACY_TO_EVENT_TYPE: Record<LegacyTransaction['type'], TxEventType> = {
 
 export interface TxEventContext {
   mint: string
+  signature?: string
   slot?: number
   feeSol?: number
 }
@@ -28,6 +29,7 @@ export function toTxEvent(tx: LegacyTransaction, ctx: TxEventContext): TxEvent {
     mint: ctx.mint,
     type: LEGACY_TO_EVENT_TYPE[tx.type],
     dex: tx.dex ?? 'Unknown',
+    signature: ctx.signature,
     slot: ctx.slot,
     block_time: tx.blockTime,
     wallet: tx.wallet,

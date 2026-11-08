@@ -56,6 +56,7 @@ export async function ingestTransactions(
 
       const event: TxEvent = toTxEvent(parsed, {
         mint,
+        signature: tx.signature,
         slot: tx.slot,
         feeSol: typeof tx.fee === 'number' ? tx.fee / 1e9 : undefined,
       })

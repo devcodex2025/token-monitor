@@ -100,6 +100,7 @@ export interface TxEvent {
   mint: string
   type: TxEventType
   dex: string
+  signature?: string
   slot?: number
   block_time: number
   wallet: string
