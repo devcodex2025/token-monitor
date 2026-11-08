@@ -1,7 +1,7 @@
 {
-  "name": "pump-fun-token-monitor",
-  "version": "1.0.0",
-  "description": "Pump.fun Token Transaction Monitor",
+  "name": "@tmr/web",
+  "version": "0.1.0",
+  "description": "Token Monitor web app (Next.js)",
   "type": "module",
   "scripts": {
     "dev": "next dev",
@@ -9,9 +9,9 @@
     "build": "next build",
     "start": "next start",
     "start:server": "NODE_ENV=production tsx server.ts",
+    "typecheck": "tsc --noEmit",
     "cli": "tsx cli.ts",
-    "webhook": "tsx lib/webhookManager.ts",
-    "lint": "next lint"
+    "webhook": "tsx lib/webhookManager.ts"
   },
   "dependencies": {
     "@solana/web3.js": "^1.87.6",

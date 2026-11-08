@@ -3,7 +3,11 @@ import antfu from '@antfu/eslint-config'
 export default antfu(
   {
     type: 'app',
-    react: true,
+    react: false,
+    vue: false,
+    svelte: false,
+    astro: false,
+    formatters: false,
     typescript: true,
     ignores: [
       '**/node_modules/**',
