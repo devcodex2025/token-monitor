@@ -1,4 +1,5 @@
 export * from './nonce'
+export * from './ownership'
 export * from './session'
 export * from './siws'
 export * from './types'
