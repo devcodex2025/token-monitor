@@ -3,16 +3,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { TransactionParser, toTxEvent } from '@tmr/parser'
 
+export { DEMO_MINTS } from './demo-mints'
+
 interface GoldenEntry {
   fixture: string
   arrayIndex: number
   mint: string
 }
-
-export const DEMO_MINTS: Array<{ mint: string, label: string }> = [
-  { mint: '67ipDsgK6D7bqTW89H8T1KTxUvVuaFy92GX7Q2XFVdev', label: 'Pump.fun / OKX fixtures' },
-  { mint: 'CSrwNk6B1DwWCHRMsaoDVUfD5bBMQCJPY72ZG3Nnpump', label: 'Meteora fixtures' },
-]
 
 function fixturesDir(): string {
   return path.resolve(process.cwd(), '..', '..', 'packages', 'parser', '__fixtures__')

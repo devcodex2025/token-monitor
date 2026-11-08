@@ -47,7 +47,12 @@ export default function OpengraphImage({ params }: ImageProps) {
             <div style={{ width: 20, height: 20, borderRadius: 9999, background: PULSE[snapshot.devPulse] }} />
             <div style={{ fontSize: 28, color: '#34d399' }}>Token Monitor</div>
           </div>
-          <div style={{ fontSize: 20, color: '#71717a' }}>tmr.watch</div>
+          <div style={{ fontSize: 20, color: '#71717a' }}>
+            Dev Pulse:
+            {' '}
+            {snapshot.devPulse}
+            {' · tmr.watch'}
+          </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
