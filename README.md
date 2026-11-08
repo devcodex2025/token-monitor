@@ -1,134 +1,59 @@
-# Token Monitor ([$TMR](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS))
+# Token Monitor ($TMR)
 
-A real-time transaction tracker for Solana tokens, powered by **Helius Webhooks**. Monitor buys, sells, and DEX activity with **zero latency** via instant push notifications.  
+Transparency & analytics layer for Solana tokens. Free token analytics; owners pay for
+**Owner Boost**, traders pay for **Turbo** and **AI Insights**. Crypto-only billing (Solana).
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=flat-square&logo=vercel&logoColor=white)](https://vercel.com/)
-[![Solana](https://img.shields.io/badge/Built%20on-Solana-9945FF?style=flat-square&logo=solana&logoColor=white)](https://solana.com/)
-[![Helius](https://img.shields.io/badge/Powered%20by-Helius-FF6B00?style=flat-square&logo=helius&logoColor=white)](https://helius.dev/)
+> **Source of truth:** [`PRD_TOKEN_MONITOR.md`](./PRD_TOKEN_MONITOR.md).
+> Work is executed milestone-by-milestone (M0 → M6) per PRD §9. Planning notes in
+> [`docs/planning/`](./docs/planning) are reference only and are not implemented outside the PRD.
 
-[![GitHub Stars](https://img.shields.io/github/stars/твійюзернейм/token-monitor?style=flat-square&logo=github)](https://github.com/твійюзернейм/token-monitor/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/твійюзернейм/token-monitor?style=flat-square&logo=github)](https://github.com/твійюзернейм/token-monitor/network/members)
+## Monorepo layout (PRD §3.1)
 
-![Token Monitor preview](/public/Token_Monitor_preview.png "Token Monitor preview")
+```
+apps/
+  web        Next.js app (legacy Next 14 shell; rewritten on RSC in M1)
+  worker     Hono worker: Helius ingest, free-path WS, parser, rules, delivery
+  bot-tg     grammy Telegram bot
+  mcp        MCP server
+packages/
+  parser     Parser v2 + TxEvent taxonomy + Pyth adapter + golden fixtures
+  auth       SIWS authentication core (nonce, ed25519 verify, sessions)
+  db         Drizzle schema v1, migrations, seed
+  config     Typed env contract (zod)
+  rules      Rules DSL v1
+  sdk        Public SDK
+  ai         AI Insights
+  billing    Solana Pay billing
+  ui         Shared UI kit
+legacy-token-monitor-2/   Reference clone: parser + fixtures only (not in the workspace)
+```
 
-## ⚡ Features
+## Local start
 
-- **Real-time Webhooks**: Instant transaction notifications with 50-150ms latency
-- **Zero Polling**: No API calls overhead - pure push architecture
-- **Smart Parsing**: Auto-detects **BUY** vs **SELL** and identifies DEX (Pump.fun, Raydium, Jupiter, etc.)
-- **Dual Mode**:
-  - 🖥️ **Web Dashboard**: Cyberpunk-styled UI with sound alerts and animations
-  - 📟 **CLI Mode**: Lightweight terminal interface
-- **Data Source**: Powered by [Helius Webhooks](https://docs.helius.dev/webhooks-and-websockets/webhooks)
-
-
-## 🎥 Introduction to Token Monitor web application
-
-<video src="https://github.com/user-attachments/assets/bd51ed6c-223d-44bd-9038-f9a1b818582a" width="100%" controls autoplay loop muted>
-  Your browser does not support the video tag.
-</video>
-
-<p align="center"><strong>Detailed intstructions how to work with application</strong></p>
-
-## Quick Start
-
-### 1. Installation
 ```bash
-git clone <repo-url>
-cd token-monitor
-npm install
+pnpm install
+docker compose up -d            # postgres (pgvector) + redis
+cp .env.example .env            # fill in secrets; never commit .env
+pnpm db:migrate
+pnpm db:seed                    # demo org with turbo + boost
+pnpm dev                        # turborepo: web :3000, worker, bot
 ```
 
-### 2. Configuration
-Create a `.env.local` file:
-```env
-HELIUS_API_KEY=your_api_key_here
-WEBHOOK_URL=https://your-domain.vercel.app/api/webhook
-```
+If Docker is unavailable, point `DATABASE_URL` at Neon Postgres with the `vector` extension.
 
-### 3. Deploy to Vercel
+## Quality gates
+
 ```bash
-npm install -g vercel
-vercel deploy --prod
+pnpm build       # turbo build (web + all packages)
+pnpm typecheck   # tsc --noEmit across the workspace
+pnpm lint        # eslint (antfu config)
+pnpm test        # vitest (parser golden fixtures, pyth, db schema, SIWS, env)
 ```
 
-### 4. Create Helius Webhook
+## Status
 
-**Via Dashboard:**
-1. Visit https://dashboard.helius.dev/webhooks
-2. Create Webhook → Enhanced Transactions
-3. URL: `https://your-domain.vercel.app/api/webhook`
-4. Types: `SWAP`, `TRANSFER`
-5. Add token addresses
-
-**Via CLI:**
-```bash
-npm run webhook create <TOKEN_ADDRESS>
-npm run webhook list
-npm run webhook delete <WEBHOOK_ID>
-```
-
-### 5. Start Monitoring
-
-Open your Vercel URL and start tracking transactions in real-time!
-
-## Tech Stack
-
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Real-time**: Server-Sent Events (SSE) + Helius Webhooks
-- **Integration**: @solana/web3.js, Helius API
-
-## Architecture
-
-```
-Solana → Helius → Webhook (50ms) → SSE → UI
-```
-
-**Pure webhook-based** - no polling, no delays!
-
-### Performance:
-- **Latency**: 50-150ms from blockchain to UI
-- **API Calls**: 0 (webhooks only)
-- **Efficiency**: 100% (receive only real transactions)
-
-**Read more**: [ARCHITECTURE.md](ARCHITECTURE.md)
-
-## 🌱 Community and support
-
-The project has own token - [$TMR](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS)  
-Token listed on [Bags.fm](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS)   
-Inside our app we using Helius technology
-  
-  
-  
-[![Bags.fm logo](public/bags-logo_32px.png)](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS)&nbsp;&nbsp;&nbsp;[![Token Monitor logo](public/pump-monitor-logo-opt_64x32.webp)](https://bags.fm/AUJgYtx8hif6tWxd79hGdwiitKMxsVRrSpz8hT4uBAGS)&nbsp;&nbsp;&nbsp;[<img src="public/helius_logo.svg" height="32" />](https://helius.dev)
-  
-  
-## 💸 Currency Conversion
-
-The monitor automatically converts **USDC** and **USDT** transactions to **SOL equivalents** for consistent volume tracking. Original amounts are displayed in parentheses for verification.
-
-- **Conversion Rate**: Configurable in `lib/transactionParser.ts` (default: ~$200/SOL)
-- **Example Display**: `0.0050 SOL (1.00 USDC)`
-- **Note**: Update `SOL_PRICE_USD` constant for accurate conversion
-
-## 🧩 Countribution
-- **If you see some bug**
-- **Some feature that we can add**
-- **Some new opportunities**
-- **Smoother UI/UX design**
-- **You are welcome!**
-
-## 📄 License
-
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
-
-## 🏷️ Keywords
-
-`solana` `blockchain` `pump.fun` `raydium` `trading-monitor` `nextjs` `typescript` `helius-api` `defi` `real-time`
+- **M0 Foundation** — complete: monorepo + CI (M0.1), parser port + golden fixtures (M0.2),
+  Drizzle schema v1 (M0.3), SIWS auth core (M0.4), env + docker-compose (M0.5).
+- Next: **M1 Data + Free analytics** (Helius ingest, free-path WS, `/t/[mint]`, SEO, wallet stats, bundle metric).
+- Parser fixtures are byte-identical copies of the legacy suite; `pnpm test` runs them against the
+  ported parser with the legacy parser as oracle.
