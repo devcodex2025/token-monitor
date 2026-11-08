@@ -5,6 +5,8 @@ import { Hono } from 'hono'
 import { ingestTransactions } from './ingest'
 import { secureCompare } from './security'
 
+export { deliverWithRetry, formatTelegramMessage, signWebhookPayload } from './delivery'
+export type { DeliveryAdapter, DeliveryPayload, DeliveryResult } from './delivery'
 export { createSolanaLogsAdapter } from './solana-adapter'
 export { FreePathWsManager, WsLimitError } from './ws-manager'
 export type { WsAdapter, WsLogEntry } from './ws-manager'
