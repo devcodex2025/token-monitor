@@ -24,6 +24,14 @@ Vercel автоматично:
 - виконає `pnpm build` у `apps/web` (див. `apps/web/vercel.json`);
 - збере `.next` (Next.js preset, `output: standalone`).
 
+З токеном ці налаштування можна застосувати скриптом:
+
+```bash
+VERCEL_TOKEN=... pnpm vercel:setup   # Root Directory + framework
+```
+
+Production Branch усе одно виставляється в Dashboard → Settings → Git.
+
 ### Env vars (Project → Settings → Environment Variables)
 
 Мінімум для web:
