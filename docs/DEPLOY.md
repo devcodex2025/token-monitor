@@ -24,6 +24,12 @@ Vercel автоматично:
 - виконає `pnpm build` у `apps/web` (див. `apps/web/vercel.json`);
 - збере `.next` (Next.js preset, `output: standalone`).
 
+Важливо: `apps/web/package-lock.json` видалено — інакше Vercel визначає npm і падає на
+`workspace:*` (`Unsupported URL Type "workspace:"`). У `apps/web/vercel.json` явно задано
+`installCommand: pnpm install --no-frozen-lockfile`.
+
+Опційно для точного pnpm з `packageManager`: env `ENABLE_EXPERIMENTAL_COREPACK=1`.
+
 З токеном ці налаштування можна застосувати скриптом:
 
 ```bash

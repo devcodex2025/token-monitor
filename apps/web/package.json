@@ -1,6 +1,7 @@
 {
   "name": "@tmr/web",
   "version": "0.1.0",
+  "packageManager": "pnpm@10.18.1",
   "description": "Token Monitor web app (Next.js)",
   "type": "module",
   "scripts": {
