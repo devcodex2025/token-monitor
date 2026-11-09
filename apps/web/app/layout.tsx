@@ -5,8 +5,8 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
 export const metadata: Metadata = {
-  title: 'Pump.fun Token Monitor',
-  description: 'Real-time token transaction monitoring for Pump.fun',
+  title: 'Token Monitor — Solana analytics',
+  description: 'Token Monitor — transparency & analytics layer for Solana tokens ($TMR).',
   icons: {
     icon: '/favicon.ico',
   },

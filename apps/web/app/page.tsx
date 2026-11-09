@@ -601,6 +601,29 @@ export default function Home() {
   return (
     <main className="min-h-screen p-4 md:p-8 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-terminal-panel via-terminal-bg to-terminal-bg">
       <div className="max-w-6xl mx-auto space-y-8">
+        {/* New platform (M1) — visible entry points */}
+        <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="text-emerald-300 font-semibold">New platform is live (M1)</div>
+            <div className="text-terminal-muted text-sm">
+              Token analytics pages and the Parser v2 demo are separate from this legacy monitor.
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 text-sm">
+            <a
+              href="/t/67ipDsgK6D7bqTW89H8T1KTxUvVuaFy92GX7Q2XFVdev"
+              className="px-3 py-1.5 rounded-md bg-emerald-500 text-black font-medium"
+            >
+              Open token page →
+            </a>
+            <a
+              href="/dev/parser"
+              className="px-3 py-1.5 rounded-md border border-emerald-500/50 text-emerald-300"
+            >
+              Parser v2 demo
+            </a>
+          </div>
+        </div>
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-terminal-border/50 pb-6">
           <div>
